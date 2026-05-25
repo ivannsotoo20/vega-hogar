@@ -1,8 +1,6 @@
-// Vega Hogar — modelo de datos
-// El schema completo (tenants, users, properties, leads, conversations,
-// visits, seller_leads, campaigns, prompt_blocks, pipeline_runs, etc.)
-// se construye en Fase 1 siguiendo `docs/sops/fase-01-modelo-datos.md`.
-// En Fase 0 dejamos solo la configuración para que `prisma generate` no falle.
+// Vega Hogar — modelo de datos v1 (Fase 1).
+// 16 tablas core + 10 enums. RLS estricto se aplica vía SQL aparte
+// (Prisma no expresa policies). Ver docs/sops/fase-01-modelo-datos.md.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,4 +10,493 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserRole {
+  admin
+  director_general
+  director_oficina
+  comercial
+  asistente_captador
+
+  @@map("user_role")
+}
+
+enum PropertyType {
+  sale
+  rent
+
+  @@map("property_type")
+}
+
+enum PropertyStatus {
+  available
+  reserved
+  sold
+  rented
+  inactive
+
+  @@map("property_status")
+}
+
+enum LeadIntent {
+  buyer
+  tenant
+  seller
+  landlord
+  unknown
+
+  @@map("lead_intent")
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  scheduled_visit
+  visited
+  offer_made
+  closed_won
+  closed_lost
+  cold
+
+  @@map("lead_status")
+}
+
+enum ChannelType {
+  whatsapp
+  voice
+  web_form
+  meta_ads
+  other
+
+  @@map("channel_type")
+}
+
+enum ConversationStatus {
+  active
+  qualified
+  disqualified
+  handoff
+  paused
+
+  @@map("conversation_status")
+}
+
+enum VisitStatus {
+  scheduled
+  done
+  noshow
+  cancelled
+  rescheduled
+
+  @@map("visit_status")
+}
+
+enum MessageRole {
+  lead
+  agent
+  human
+
+  @@map("message_role")
+}
+
+enum IntegrationProvider {
+  ycloud
+  zadarma
+  elevenlabs
+  deepgram
+  composio
+  meta_ads
+
+  @@map("integration_provider")
+}
+
+// =============================================================================
+// GRUPO A — Identidad y multi-tenant
+// =============================================================================
+
+model Tenant {
+  id        BigInt   @id @default(autoincrement())
+  slug      String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(120)
+  settings  Json     @default("{}") @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  users                  User[]
+  offices                Office[]
+  userOfficeAssignments  UserOfficeAssignment[]
+  properties             Property[]
+  propertyPhotos         PropertyPhoto[]
+  propertyOwners         PropertyOwner[]
+  leads                  Lead[]
+  leadPreferences        LeadPreference[]
+  leadPropertyInterests  LeadPropertyInterest[]
+  conversations          Conversation[]
+  conversationMessages   ConversationMessage[]
+  messageSchedules       MessageSchedule[]
+  visits                 Visit[]
+  promptBlocks           PromptBlock[]
+  integrationAccounts    IntegrationAccount[]
+
+  @@map("tenants")
+}
+
+model User {
+  id          BigInt   @id @default(autoincrement())
+  authUserId  String   @unique @map("auth_user_id") @db.Uuid
+  tenantId    BigInt   @map("tenant_id")
+  email       String   @db.VarChar(255)
+  fullName    String   @map("full_name") @db.VarChar(120)
+  phone       String?  @db.VarChar(30)
+  role        UserRole
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  officeAssignments     UserOfficeAssignment[]
+  assignedProperties    Property[]             @relation("PropertyAssignedTo")
+  assignedLeads         Lead[]                 @relation("LeadAssignedTo")
+  visitsAsComercial     Visit[]                @relation("VisitComercial")
+
+  @@unique([tenantId, email])
+  @@index([tenantId, role])
+  @@map("users")
+}
+
+model Office {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt   @map("tenant_id")
+  slug      String   @db.VarChar(50)
+  name      String   @db.VarChar(120)
+  address   String
+  city      String   @default("Valencia") @db.VarChar(80)
+  phone     String?  @db.VarChar(30)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments UserOfficeAssignment[]
+  properties  Property[]
+  leads       Lead[]
+
+  @@unique([tenantId, slug])
+  @@map("offices")
+}
+
+model UserOfficeAssignment {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt   @map("tenant_id")
+  userId    BigInt   @map("user_id")
+  officeId  BigInt   @map("office_id")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  office Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, officeId])
+  @@map("user_office_assignments")
+}
+
+// =============================================================================
+// GRUPO B — Inmuebles
+// =============================================================================
+
+model Property {
+  id                 BigInt          @id @default(autoincrement())
+  tenantId           BigInt          @map("tenant_id")
+  officeId           BigInt          @map("office_id")
+  type               PropertyType
+  status             PropertyStatus  @default(available)
+  title              String          @db.VarChar(200)
+  description        String?
+  priceEur           Decimal?        @map("price_eur") @db.Decimal(12, 2)
+  monthlyRentEur     Decimal?        @map("monthly_rent_eur") @db.Decimal(10, 2)
+  m2Built            Int             @map("m2_built")
+  m2Useful           Int?            @map("m2_useful")
+  rooms              Int             @default(0)
+  bathrooms          Int             @default(0)
+  yearBuilt          Int?            @map("year_built")
+  neighborhood       String          @db.VarChar(100)
+  addressShort       String?         @map("address_short")
+  features           Json            @default("{}") @db.JsonB
+  assignedToUserId   BigInt?         @map("assigned_to_user_id")
+  deletedAt          DateTime?       @map("deleted_at") @db.Timestamptz
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime        @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant        Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  office        Office                  @relation(fields: [officeId], references: [id])
+  assignedTo    User?                   @relation("PropertyAssignedTo", fields: [assignedToUserId], references: [id])
+  photos        PropertyPhoto[]
+  owners        PropertyOwner[]
+  leadInterests LeadPropertyInterest[]
+  visits        Visit[]
+
+  @@index([tenantId, status, type])
+  @@index([tenantId, neighborhood])
+  @@index([tenantId, deletedAt])
+  @@map("properties")
+}
+
+model PropertyPhoto {
+  id         BigInt   @id @default(autoincrement())
+  tenantId   BigInt   @map("tenant_id")
+  propertyId BigInt   @map("property_id")
+  url        String
+  caption    String?  @db.VarChar(200)
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+  @@map("property_photos")
+}
+
+model PropertyOwner {
+  id         BigInt   @id @default(autoincrement())
+  tenantId   BigInt   @map("tenant_id")
+  propertyId BigInt   @map("property_id")
+  fullName   String   @map("full_name") @db.VarChar(120)
+  phone      String?  @db.VarChar(30)
+  email      String?  @db.VarChar(255)
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_owners")
+}
+
+// =============================================================================
+// GRUPO C — Leads
+// =============================================================================
+
+model Lead {
+  id                 BigInt      @id @default(autoincrement())
+  tenantId           BigInt      @map("tenant_id")
+  officeId           BigInt?     @map("office_id")
+  assignedToUserId   BigInt?     @map("assigned_to_user_id")
+  channel            ChannelType
+  externalId         String?     @map("external_id") @db.VarChar(120)
+  fullName           String?     @map("full_name") @db.VarChar(120)
+  phone              String      @db.VarChar(30)
+  email              String?     @db.VarChar(255)
+  intent             LeadIntent  @default(unknown)
+  status             LeadStatus  @default(new)
+  currentPhase       Int         @default(0) @map("current_phase")
+  sourceNotes        String?     @map("source_notes")
+  deletedAt          DateTime?   @map("deleted_at") @db.Timestamptz
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant              Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  office              Office?                @relation(fields: [officeId], references: [id])
+  assignedTo          User?                  @relation("LeadAssignedTo", fields: [assignedToUserId], references: [id])
+  preferences         LeadPreference[]
+  propertyInterests   LeadPropertyInterest[]
+  conversations       Conversation[]
+  visits              Visit[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedToUserId, status])
+  @@index([tenantId, intent])
+  @@map("leads")
+}
+
+model LeadPreference {
+  id                BigInt        @id @default(autoincrement())
+  tenantId          BigInt        @map("tenant_id")
+  leadId            BigInt        @map("lead_id")
+  type              PropertyType
+  neighborhoods     String[]      @default([])
+  priceMinEur       Decimal?      @map("price_min_eur") @db.Decimal(12, 2)
+  priceMaxEur       Decimal?      @map("price_max_eur") @db.Decimal(12, 2)
+  roomsMin          Int?          @map("rooms_min")
+  m2Min             Int?          @map("m2_min")
+  featuresRequired  Json          @default("{}") @map("features_required") @db.JsonB
+  urgency           String?       @db.VarChar(20)
+  motives           String?
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, type])
+  @@map("lead_preferences")
+}
+
+model LeadPropertyInterest {
+  id         BigInt   @id @default(autoincrement())
+  tenantId   BigInt   @map("tenant_id")
+  leadId     BigInt   @map("lead_id")
+  propertyId BigInt   @map("property_id")
+  status     String   @default("interested") @db.VarChar(20)
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, propertyId])
+  @@map("lead_property_interest")
+}
+
+// =============================================================================
+// GRUPO D — Conversaciones
+// =============================================================================
+
+model Conversation {
+  id              BigInt              @id @default(autoincrement())
+  tenantId        BigInt              @map("tenant_id")
+  leadId          BigInt              @map("lead_id")
+  channel         ChannelType
+  currentPhase    Int                 @default(0) @map("current_phase")
+  status          ConversationStatus  @default(active)
+  emotion         String?             @db.VarChar(40)
+  goal            String?
+  urgency         String?             @db.VarChar(20)
+  nextAction      String?             @map("next_action")
+  generalContext  String?             @map("general_context")
+  aiPausedUntil   DateTime?           @map("ai_paused_until") @db.Timestamptz
+  lastMessageAt   DateTime?           @map("last_message_at") @db.Timestamptz
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime            @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  messages  ConversationMessage[]
+  schedules MessageSchedule[]
+
+  @@unique([tenantId, leadId, channel])
+  @@index([tenantId, status, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id             BigInt      @id @default(autoincrement())
+  tenantId       BigInt      @map("tenant_id")
+  conversationId BigInt      @map("conversation_id")
+  role           MessageRole
+  content        String
+  audioUrl       String?     @map("audio_url")
+  externalMsgId  String?     @map("external_msg_id") @db.VarChar(120)
+  metadata       Json        @default("{}") @db.JsonB
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("conversation_messages")
+}
+
+model MessageSchedule {
+  id             BigInt      @id @default(autoincrement())
+  tenantId       BigInt      @map("tenant_id")
+  conversationId BigInt      @map("conversation_id")
+  stepNumber     Int         @map("step_number")
+  channel        ChannelType
+  scheduledFor   DateTime    @map("scheduled_for") @db.Timestamptz
+  status         String      @default("pending") @db.VarChar(20)
+  sentAt         DateTime?   @map("sent_at") @db.Timestamptz
+  errorMessage   String?     @map("error_message")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@map("message_schedules")
+}
+
+// =============================================================================
+// GRUPO E — Visitas
+// =============================================================================
+
+model Visit {
+  id                BigInt      @id @default(autoincrement())
+  tenantId          BigInt      @map("tenant_id")
+  leadId            BigInt      @map("lead_id")
+  propertyId        BigInt?     @map("property_id")
+  comercialUserId   BigInt      @map("comercial_user_id")
+  scheduledFor      DateTime    @map("scheduled_for") @db.Timestamptz
+  status            VisitStatus @default(scheduled)
+  outcomeNotes      String?     @map("outcome_notes")
+  leadFeedback      String?     @map("lead_feedback")
+  isTasation        Boolean     @default(false) @map("is_tasation")
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  property  Property? @relation(fields: [propertyId], references: [id])
+  comercial User      @relation("VisitComercial", fields: [comercialUserId], references: [id])
+
+  @@index([tenantId, comercialUserId, scheduledFor])
+  @@index([tenantId, status, scheduledFor])
+  @@map("visits")
+}
+
+// =============================================================================
+// GRUPO F — Agente IA (vacío hasta Fase 6)
+// =============================================================================
+
+model PromptBlock {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt?  @map("tenant_id")
+  blockKey  String   @map("block_key") @db.VarChar(80)
+  content   String
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, blockKey, isActive])
+  @@map("prompt_blocks")
+}
+
+// =============================================================================
+// GRUPO G — Sistema (vacío hasta Fase 5)
+// =============================================================================
+
+model IntegrationAccount {
+  id                    BigInt              @id @default(autoincrement())
+  tenantId              BigInt              @map("tenant_id")
+  provider              IntegrationProvider
+  displayName           String              @map("display_name") @db.VarChar(120)
+  connectionConfig      Json                @default("{}") @map("connection_config") @db.JsonB
+  credentialsEncrypted  Json?               @map("credentials_encrypted") @db.JsonB
+  webhookSecret         String?             @map("webhook_secret")
+  active                Boolean             @default(true)
+  lastWebhookAt         DateTime?           @map("last_webhook_at") @db.Timestamptz
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime            @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider, displayName])
+  @@map("integration_accounts")
 }
