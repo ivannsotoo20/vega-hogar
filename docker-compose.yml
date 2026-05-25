@@ -1,0 +1,40 @@
+# Vega Hogar — stack local de desarrollo del motor del agente IA.
+# El panel Next.js corre fuera de Docker en `pnpm dev` (Vercel lo despliega).
+# Producción: este motor se levanta en VPS Contabo con la misma compose (Fase 5+).
+
+services:
+  motor:
+    build:
+      context: .
+      dockerfile: apps/motor/Dockerfile
+    container_name: vega-hogar-motor
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+      - LOG_LEVEL=debug
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3010:3010"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: vega-hogar-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:

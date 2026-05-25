@@ -1,0 +1,15 @@
+// Vega Hogar — modelo de datos
+// El schema completo (tenants, users, properties, leads, conversations,
+// visits, seller_leads, campaigns, prompt_blocks, pipeline_runs, etc.)
+// se construye en Fase 1 siguiendo `docs/sops/fase-01-modelo-datos.md`.
+// En Fase 0 dejamos solo la configuración para que `prisma generate` no falle.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}

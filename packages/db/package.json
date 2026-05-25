@@ -1,0 +1,30 @@
+{
+  "name": "@vega-hogar/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prisma schema + cliente Supabase compartido para panel y motor",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "@supabase/supabase-js": "^2.103.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prisma": "^6.1.0",
+    "typescript": "^5.7.2"
+  }
+}

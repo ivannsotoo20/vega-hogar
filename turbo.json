@@ -1,0 +1,68 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", ".env.local", "tsconfig.base.json"],
+  "globalEnv": [
+    "NODE_ENV",
+    "PORT",
+    "LOG_LEVEL",
+    "REDIS_URL",
+
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "DATABASE_URL",
+    "DIRECT_URL",
+
+    "ANTHROPIC_API_KEY",
+
+    "CREDENTIALS_ENCRYPTION_KEY",
+    "INTERNAL_STATS_TOKEN",
+    "MOTOR_INTERNAL_URL",
+
+    "NEXT_PUBLIC_PANEL_BASE_URL",
+    "NEXT_PUBLIC_SITE_URL",
+
+    "YCLOUD_API_BASE",
+    "YCLOUD_API_KEY",
+    "YCLOUD_WEBHOOK_VERIFY_MODE",
+    "WHATSAPP_PROVIDER",
+
+    "ZADARMA_API_KEY",
+    "ZADARMA_API_SECRET",
+    "ZADARMA_SIP_USER",
+
+    "ELEVENLABS_API_KEY",
+    "ELEVENLABS_VOICE_ID",
+    "DEEPGRAM_API_KEY",
+
+    "COMPOSIO_API_KEY",
+
+    "META_APP_ID",
+    "META_APP_SECRET",
+    "META_VERIFY_TOKEN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

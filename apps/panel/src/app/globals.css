@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --color-oliva: #5c6f44;
+  --color-oliva-dark: #485636;
+  --color-oliva-light: #7a8b5e;
+  --color-terracota: #b85c38;
+  --color-terracota-dark: #934829;
+  --color-terracota-light: #d07a55;
+  --color-crema: #f5ebdd;
+  --color-crema-dark: #e8d8bf;
+  --color-negro-suave: #2a2a2a;
+  --color-blanco-roto: #fafaf7;
+
+  --background: var(--color-crema);
+  --foreground: var(--color-negro-suave);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-oliva: var(--color-oliva);
+  --color-brand-oliva-dark: var(--color-oliva-dark);
+  --color-brand-oliva-light: var(--color-oliva-light);
+  --color-brand-terracota: var(--color-terracota);
+  --color-brand-terracota-dark: var(--color-terracota-dark);
+  --color-brand-terracota-light: var(--color-terracota-light);
+  --color-brand-crema: var(--color-crema);
+  --color-brand-crema-dark: var(--color-crema-dark);
+  --color-brand-negro: var(--color-negro-suave);
+  --color-brand-blanco: var(--color-blanco-roto);
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
