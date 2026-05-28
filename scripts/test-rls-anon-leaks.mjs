@@ -40,6 +40,7 @@ const TABLES = [
   'visits',
   'prompt_blocks',
   'integration_accounts',
+  'permissions_matrix',
 ];
 
 let passes = 0;

@@ -17,6 +17,7 @@ const EXPECTED_TABLES = [
   'leads', 'lead_preferences', 'lead_property_interest',
   'conversations', 'conversation_messages', 'message_schedules',
   'visits', 'prompt_blocks', 'integration_accounts',
+  'permissions_matrix',
 ];
 
 const EXPECTED_ENUMS = [
@@ -33,6 +34,7 @@ const TABLES_WITH_UPDATED_AT = [
   'leads', 'lead_preferences', 'lead_property_interest',
   'conversations', 'message_schedules', 'visits',
   'prompt_blocks', 'integration_accounts',
+  'permissions_matrix',
 ];
 
 const client = new Client({ connectionString: process.env.DATABASE_URL });

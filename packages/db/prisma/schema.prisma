@@ -143,6 +143,7 @@ model Tenant {
   visits                 Visit[]
   promptBlocks           PromptBlock[]
   integrationAccounts    IntegrationAccount[]
+  permissionsMatrix      PermissionsMatrix[]
 
   @@map("tenants")
 }
@@ -499,4 +500,26 @@ model IntegrationAccount {
 
   @@unique([tenantId, provider, displayName])
   @@map("integration_accounts")
+}
+
+// =============================================================================
+// GRUPO H — Auth / permisos UI (Fase 2)
+// =============================================================================
+// La matriz controla visibilidad UI (botones, listados, menús). La fuente de
+// verdad de seguridad son las RLS policies en packages/db/policies/.
+
+model PermissionsMatrix {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      BigInt   @map("tenant_id")
+  role          UserRole
+  permissionKey String   @map("permission_key") @db.VarChar(80)
+  granted       Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, role, permissionKey])
+  @@index([tenantId, role, permissionKey])
+  @@map("permissions_matrix")
 }
