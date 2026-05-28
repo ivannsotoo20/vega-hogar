@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoginErrorToast } from './LoginErrorToast';
-import { requestMagicLinkAction, signInWithPasswordAction } from './actions';
+import { PasswordLoginForm } from './PasswordLoginForm';
+import { requestMagicLinkAction } from './actions';
 
 export const metadata = {
   title: 'Acceder · Vega Hogar Inmobiliaria',
@@ -53,32 +54,7 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={signInWithPasswordAction} className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="pw-email">Email</Label>
-                <Input
-                  id="pw-email"
-                  name="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="pw-password">Contraseña</Label>
-                <Input
-                  id="pw-password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <Button type="submit" variant="outline" className="w-full">
-                Acceder con contraseña
-              </Button>
-            </form>
+            <PasswordLoginForm />
           </CardContent>
         </Card>
       </div>
