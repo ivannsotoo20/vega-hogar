@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -40,6 +41,10 @@ export async function signInWithPasswordAction(formData: FormData): Promise<void
     redirect('/login?error=invalid_credentials');
   }
 
+  // Crítico en Next 15+ server actions con Supabase SSR:
+  // invalidar el cache de rendering para que la nueva sesión sea visible
+  // en el siguiente request (sin esto, middleware no ve la cookie aún).
+  revalidatePath('/', 'layout');
   redirect('/dashboard');
 }
 

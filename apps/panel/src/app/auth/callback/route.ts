@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -30,5 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=invalid_code', url));
   }
 
+  // Crítico para que el middleware vea la nueva sesión en el redirect.
+  revalidatePath('/', 'layout');
   return NextResponse.redirect(new URL(target, url));
 }
