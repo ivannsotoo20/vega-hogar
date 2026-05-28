@@ -252,7 +252,46 @@ Branch: `checkpoint/fase-02` → push a `origin`.
 
 ---
 
-## 7. Lecciones aprendidas
+## 7. Hotfix RLS (post-cierre) — recursión infinita en helpers Fase 1
+
+**Detectado**: 2026-05-28 durante el primer login real con password.
+
+**Síntoma**: tras `signInWithPassword` exitoso (cookie OK, `auth.uid()` devuelve el
+UUID correcto), el middleware no encuentra la row del user en `public.users` y
+muestra toast "No encontramos tu perfil". Diagnóstico con script
+`admin-verify-profile-link.mjs` reveló: la query desde anon+session lanza
+`stack depth limit exceeded`.
+
+**Causa raíz**: las helpers `current_tenant()` y `current_user_role()` (Fase 1)
+fueron creadas como `SECURITY INVOKER` (default). Cuando un user autenticado
+las llamaba:
+1. Query interna `SELECT tenant_id FROM users WHERE auth_user_id = auth.uid()`
+2. Como INVOKER aplica permisos del invoker → RLS de users evaluada
+3. Policy `users_select` evalúa `auth_user_id = auth.uid() OR tenant_id = current_tenant()`
+4. Postgres no garantiza short-circuit en el OR → llama `current_tenant()` de nuevo
+5. **Recursión infinita** → stack overflow
+
+Invisible durante el seed Fase 1 porque service_role bypasea RLS.
+
+**Fix aplicado**: `packages/db/migrations/004_fix_helpers_security_definer.sql`.
+Helpers cambiadas a `SECURITY DEFINER` + `SET search_path = public, pg_temp` +
+`REVOKE FROM PUBLIC, anon` + `GRANT TO authenticated, service_role`. La query
+interna ahora corre con permisos del owner (postgres) → bypasea RLS → no
+recursión.
+
+**Verificación post-fix**:
+- Script `admin-verify-profile-link.mjs` → `[public.users via anon + session] ✓ encontrado`.
+- Login real en producción → `/director/dashboard` con header "Iván Soto · admin".
+
+**Por qué no se detectó antes**: el script `test-rls-anon-leaks.mjs` solo prueba
+acceso ANON sin sesión (esperado 0 rows). No prueba con sesión autenticada
+porque eso requiere infraestructura más compleja. Recomendación Fase 3:
+añadir test `test-rls-with-session.mjs` que use `signInWithPassword` para
+validar que helpers + policies no entran en recursión.
+
+---
+
+## 8. Lecciones aprendidas
 
 - **shadcn preset naming != marca cliente**: el preset "Vega" de shadcn referencia
   la estrella, paleta gris neutral, no la marca Vega Hogar. Mapear paleta cliente
