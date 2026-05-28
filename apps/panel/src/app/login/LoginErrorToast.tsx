@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_email: 'Email no válido. Revisa el formato.',
+  invalid_password: 'La contraseña debe tener al menos 6 caracteres.',
+  invalid_credentials: 'Email o contraseña incorrectos.',
   inactive: 'Tu cuenta está desactivada. Contacta con un administrador.',
   no_profile: 'No encontramos tu perfil en el sistema. Contacta con un administrador.',
   forbidden: 'No tienes permiso para acceder a esa sección.',

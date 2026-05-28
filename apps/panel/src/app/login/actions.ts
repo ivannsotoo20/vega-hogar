@@ -14,6 +14,36 @@ async function getOrigin(): Promise<string> {
 }
 
 /**
+ * Login con password — alternativa a magic link.
+ * Útil para users sembrados via admin que aún no tienen identity email
+ * (Supabase crea la identity al primer signInWithPassword exitoso, y a
+ * partir de ahí magic link también funciona).
+ */
+export async function signInWithPasswordAction(formData: FormData): Promise<void> {
+  const rawEmail = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+
+  if (!rawEmail || !EMAIL_RE.test(rawEmail)) {
+    redirect('/login?error=invalid_email');
+  }
+  if (!password || password.length < 6) {
+    redirect('/login?error=invalid_password');
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: rawEmail,
+    password,
+  });
+
+  if (error) {
+    redirect('/login?error=invalid_credentials');
+  }
+
+  redirect('/dashboard');
+}
+
+/**
  * Envía magic link al email. `shouldCreateUser: false` — no se crean cuentas
  * nuevas vía magic link en Vega Hogar (creación va por seed/admin).
  *
