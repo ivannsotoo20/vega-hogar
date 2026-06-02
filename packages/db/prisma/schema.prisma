@@ -101,6 +101,7 @@ enum MessageRole {
   lead
   agent
   human
+  system
 
   @@map("message_role")
 }
@@ -112,6 +113,7 @@ enum IntegrationProvider {
   deepgram
   composio
   meta_ads
+  ghl
 
   @@map("integration_provider")
 }
@@ -124,6 +126,7 @@ model Tenant {
   id        BigInt   @id @default(autoincrement())
   slug      String   @unique @db.VarChar(50)
   name      String   @db.VarChar(120)
+  isActive  Boolean  @default(true) @map("is_active")
   settings  Json     @default("{}") @db.JsonB
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
@@ -145,6 +148,12 @@ model Tenant {
   promptBlocks           PromptBlock[]
   integrationAccounts    IntegrationAccount[]
   permissionsMatrix      PermissionsMatrix[]
+  tenantConfig           TenantConfig?
+  llmConfigs             LlmConfig[]
+  llmCalls               LlmCall[]
+  tenantTokens           TenantToken[]
+  agentKnowledge         AgentKnowledge[]
+  resources              Resource[]
 
   @@map("tenants")
 }
@@ -303,6 +312,10 @@ model Lead {
   status             LeadStatus  @default(new)
   currentPhase       Int         @default(0) @map("current_phase")
   sourceNotes        String?     @map("source_notes")
+  timezone           String?
+  lastMessageAt      DateTime?   @map("last_message_at") @db.Timestamptz
+  trackingUuid       String?     @unique @map("tracking_uuid")
+  location           String?
   deletedAt          DateTime?   @map("deleted_at") @db.Timestamptz
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime    @default(now()) @map("updated_at") @db.Timestamptz
@@ -381,6 +394,31 @@ model Conversation {
   generalContext  String?             @map("general_context")
   aiPausedUntil   DateTime?           @map("ai_paused_until") @db.Timestamptz
   lastMessageAt   DateTime?           @map("last_message_at") @db.Timestamptz
+  // Motor portado (F4)
+  isQualified            Boolean?               @map("is_qualified")
+  phaseMessageCount      Int                    @default(0) @map("phase_message_count")
+  priority               ConversationPriority?
+  direction              ConversationDirection  @default(untagged)
+  isHandoffToHuman       Boolean                @default(false) @map("is_handoff_to_human")
+  handoffCause           HandoffCause?          @map("handoff_cause")
+  handoffReason          String?                @map("handoff_reason")
+  handoffAt              DateTime?              @map("handoff_at") @db.Timestamptz
+  isSchedulingLinkSent   Boolean                @default(false) @map("is_scheduling_link_sent")
+  appointmentScheduledAt DateTime?              @map("appointment_scheduled_at") @db.Timestamptz
+  currentContext         String?                @map("current_context")
+  generalMotivation      String?                @map("general_motivation")
+  problem                String?
+  customFields           Json                   @default("{}") @map("custom_fields") @db.JsonB
+  conversationSource     String?                @map("conversation_source")
+  isUnread               Boolean                @default(false) @map("is_unread")
+  isBlocked              Boolean                @default(false) @map("is_blocked")
+  assignedUserId         BigInt?                @map("assigned_user_id")
+  firstAiMessageAt       DateTime?              @map("first_ai_message_at") @db.Timestamptz
+  firstLeadResponseAt    DateTime?              @map("first_lead_response_at") @db.Timestamptz
+  ghlContactId           String?                @map("ghl_contact_id")
+  ghlOpportunityId       String?                @map("ghl_opportunity_id")
+  ghlConversationId      String?                @map("ghl_conversation_id")
+  ghlOpportunityStatus   String?                @map("ghl_opportunity_status")
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime            @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -388,6 +426,7 @@ model Conversation {
   lead      Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
   messages  ConversationMessage[]
   schedules MessageSchedule[]
+  llmCalls  LlmCall[]
 
   @@unique([tenantId, leadId, channel])
   @@index([tenantId, status, lastMessageAt(sort: Desc)])
@@ -400,9 +439,12 @@ model ConversationMessage {
   conversationId BigInt      @map("conversation_id")
   role           MessageRole
   content        String
-  audioUrl       String?     @map("audio_url")
-  externalMsgId  String?     @map("external_msg_id") @db.VarChar(120)
-  metadata       Json        @default("{}") @db.JsonB
+  audioUrl       String?            @map("audio_url")
+  contentType    MessageContentType @default(text) @map("content_type")
+  mediaMime      String?            @map("media_mime")
+  transcription  String?
+  externalMsgId  String?            @map("external_msg_id") @db.VarChar(120)
+  metadata       Json               @default("{}") @db.JsonB
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -419,9 +461,25 @@ model MessageSchedule {
   stepNumber     Int         @map("step_number")
   channel        ChannelType
   scheduledFor   DateTime    @map("scheduled_for") @db.Timestamptz
-  status         String      @default("pending") @db.VarChar(20)
+  status         ScheduleStatus @default(pending)
   sentAt         DateTime?   @map("sent_at") @db.Timestamptz
   errorMessage   String?     @map("error_message")
+  // Motor portado (F4) — template_id se añade en 012 (followup_templates)
+  message              String?
+  messageType          ScheduleMessageKind @default(message) @map("message_type")
+  integrationAccountId BigInt?             @map("integration_account_id")
+  triggeredBy          String              @default("manual") @map("triggered_by")
+  autoCancelOnReply    Boolean             @default(true) @map("auto_cancel_on_reply")
+  attempts             Int                 @default(0)
+  resourceId           BigInt?             @map("resource_id")
+  resourceType         ResourceType?       @map("resource_type")
+  hasAttachment        Boolean             @default(false) @map("has_attachment")
+  attachmentUrl        String?             @map("attachment_url")
+  aiPersonalize        Boolean             @default(false) @map("ai_personalize")
+  aiGuide              String?             @map("ai_guide")
+  sequenceIndex        Int?                @map("sequence_index")
+  createdByUserId      BigInt?             @map("created_by_user_id")
+  templateId           BigInt?             @map("template_id")
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime    @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -446,7 +504,8 @@ model Visit {
   status            VisitStatus @default(scheduled)
   outcomeNotes      String?     @map("outcome_notes")
   leadFeedback      String?     @map("lead_feedback")
-  isTasation        Boolean     @default(false) @map("is_tasation")
+  isTasation            Boolean     @default(false) @map("is_tasation")
+  calendarAppointmentId BigInt?     @map("calendar_appointment_id")
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime    @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -524,4 +583,527 @@ model PermissionsMatrix {
   @@unique([tenantId, role, permissionKey])
   @@index([tenantId, role, permissionKey])
   @@map("permissions_matrix")
+}
+
+// =============================================================================
+// GRUPO I — Motor del agente (port SETTER, Fase 4)
+// =============================================================================
+
+enum LlmRole {
+  generator
+  judge
+  splitter
+  transcriber
+  embedder
+
+  @@map("llm_role")
+}
+
+enum LlmProvider {
+  anthropic
+  openai
+  google
+  azure_openai
+  custom
+
+  @@map("llm_provider")
+}
+
+enum LlmCallStatus {
+  success
+  error
+  fallback
+
+  @@map("llm_call_status")
+}
+
+enum ScheduleStatus {
+  pending
+  processing
+  sent
+  failed
+  cancelled
+
+  @@map("schedule_status")
+}
+
+enum ScheduleMessageKind {
+  message
+  follow_up
+  resource
+
+  @@map("schedule_message_kind")
+}
+
+enum HandoffCause {
+  A_agenda
+  B_derivacion
+  C_descualificado
+  D_espera
+  E_error
+
+  @@map("handoff_cause")
+}
+
+enum ResourceType {
+  pdf
+  video
+  image
+  audio
+  link
+  document
+  other
+
+  @@map("resource_type")
+}
+
+enum ConversationPriority {
+  alta
+  media
+  baja
+
+  @@map("conversation_priority")
+}
+
+enum ConversationDirection {
+  inbound
+  outbound
+  untagged
+
+  @@map("conversation_direction")
+}
+
+enum MessageContentType {
+  text
+  audio
+  image
+  video
+  file
+  mixed
+
+  @@map("message_content_type")
+}
+
+model TenantConfig {
+  tenantId                    BigInt   @id @map("tenant_id")
+  activeConversationDelaySeconds Int   @default(30) @map("active_conversation_delay_seconds")
+  idleConversationDelaySeconds   Int   @default(300) @map("idle_conversation_delay_seconds")
+  debounceWindowSeconds       Int      @default(25) @map("debounce_window_seconds")
+  timezone                    String   @default("Europe/Madrid")
+  maxMessagesPerConversation  Int      @default(22) @map("max_messages_per_conversation")
+  defaultAudioLanguage        String   @default("es") @map("default_audio_language")
+  healthThresholdHoursAmber   Int      @default(12) @map("health_threshold_hours_amber")
+  healthThresholdHoursRed     Int      @default(72) @map("health_threshold_hours_red")
+  welcomeTemplateId           BigInt?  @map("welcome_template_id")
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_configs")
+}
+
+model Phase {
+  id           BigInt  @id @default(autoincrement())
+  number       Int     @db.SmallInt
+  intentTrack  String  @default("shared") @map("intent_track")
+  name         String
+  description  String?
+  maxMessages  Int     @default(5) @map("max_messages") @db.SmallInt
+
+  @@unique([number, intentTrack])
+  @@map("phases")
+}
+
+model LlmConfig {
+  id                     BigInt      @id @default(autoincrement())
+  tenantId               BigInt      @map("tenant_id")
+  role                   LlmRole     @default(generator)
+  provider               LlmProvider @default(anthropic)
+  model                  String
+  apiKeyEncrypted        String?     @map("api_key_encrypted")
+  priceInputPer1m        Decimal?    @map("price_input_per_1m") @db.Decimal(10, 4)
+  priceOutputPer1m       Decimal?    @map("price_output_per_1m") @db.Decimal(10, 4)
+  priceCachedInputPer1m  Decimal?    @map("price_cached_input_per_1m") @db.Decimal(10, 4)
+  isActive               Boolean     @default(true) @map("is_active")
+  createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, role, provider, model])
+  @@map("llm_configs")
+}
+
+model LlmCall {
+  id               BigInt        @id @default(autoincrement())
+  tenantId         BigInt        @map("tenant_id")
+  conversationId   BigInt?       @map("conversation_id")
+  role             LlmRole
+  provider         LlmProvider
+  model            String
+  status           LlmCallStatus
+  requestPayload   Json?         @map("request_payload") @db.JsonB
+  responsePayload  Json?         @map("response_payload") @db.JsonB
+  latencyMs        Int?          @map("latency_ms")
+  tokensIn         Int?          @map("tokens_in")
+  tokensOut        Int?          @map("tokens_out")
+  tokensInCached   Int?          @map("tokens_in_cached")
+  cost             Decimal?      @db.Decimal(12, 6)
+  errorMessage     String?       @map("error_message")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, conversationId])
+  @@map("llm_calls")
+}
+
+model TenantToken {
+  id         BigInt    @id @default(autoincrement())
+  tenantId   BigInt    @map("tenant_id")
+  token      String    @unique
+  purpose    String    @default("webhook")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_tokens")
+}
+
+model AgentKnowledge {
+  id         BigInt                        @id @default(autoincrement())
+  tenantId   BigInt                        @map("tenant_id")
+  title      String?
+  content    String
+  metadata   Json                          @default("{}") @db.JsonB
+  embedding  Unsupported("vector(1536)")?
+  isActive   Boolean                       @default(true) @map("is_active")
+  createdAt  DateTime                      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime                      @default(now()) @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("agent_knowledge")
+}
+
+model Resource {
+  id            BigInt       @id @default(autoincrement())
+  tenantId      BigInt       @map("tenant_id")
+  name          String
+  description   String?
+  resourceType  ResourceType @map("resource_type")
+  mimeType      String?      @map("mime_type")
+  url           String?
+  storagePath   String?      @map("storage_path")
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("resources")
+}
+
+// =============================================================================
+// GRUPO J — Pipeline, followups, labels, calendar, voz, mock (port SETTER, F4)
+// =============================================================================
+// Estos modelos usan campos ESCALARES para las FK (incl. tenantId): la integridad
+// referencial vive en el SQL (REFERENCES en migrations/011-013). Las @relation de
+// navegación Prisma se añaden por módulo cuando el panel las consuma (F5+); el
+// motor consume estas tablas vía supabase-js, no Prisma.
+
+model PipelineRun {
+  id                  BigInt    @id @default(autoincrement())
+  tenantId            BigInt    @map("tenant_id")
+  conversationId      BigInt?   @map("conversation_id")
+  correlationId       String    @unique @map("correlation_id") @db.Uuid
+  startedAt           DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  endedAt             DateTime? @map("ended_at") @db.Timestamptz
+  durationMs          Int?      @map("duration_ms")
+  generatorModel      String?   @map("generator_model")
+  generatorTokensIn   Int?      @map("generator_tokens_in")
+  generatorTokensOut  Int?      @map("generator_tokens_out")
+  generatorCostUsd    Decimal?  @map("generator_cost_usd") @db.Decimal(10, 6)
+  judgeModel          String?   @map("judge_model")
+  judgeTokensIn       Int?      @map("judge_tokens_in")
+  judgeTokensOut      Int?      @map("judge_tokens_out")
+  judgeCostUsd        Decimal?  @map("judge_cost_usd") @db.Decimal(10, 6)
+  judgeDecision       String?   @map("judge_decision")
+  splitterModel       String?   @map("splitter_model")
+  splitterTokensIn    Int?      @map("splitter_tokens_in")
+  splitterTokensOut   Int?      @map("splitter_tokens_out")
+  splitterCostUsd     Decimal?  @map("splitter_cost_usd") @db.Decimal(10, 6)
+  splitterParts       Int?      @map("splitter_parts")
+  validatorViolations Json?     @map("validator_violations") @db.JsonB
+  totalCostUsd        Decimal?  @map("total_cost_usd") @db.Decimal(10, 6)
+  totalTokensIn       Int?      @map("total_tokens_in")
+  totalTokensOut      Int?      @map("total_tokens_out")
+  outcome             String    @default("in_progress")
+  errorMessage        String?   @map("error_message")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId, startedAt(sort: Desc)])
+  @@index([conversationId])
+  @@map("pipeline_runs")
+}
+
+model PipelineEvent {
+  id             BigInt   @id @default(autoincrement())
+  tenantId       BigInt   @map("tenant_id")
+  conversationId BigInt   @map("conversation_id")
+  eventType      String   @map("event_type")
+  fromValue      String?  @map("from_value")
+  toValue        String   @map("to_value")
+  source         String
+  occurredAt     DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+
+  @@index([tenantId, occurredAt(sort: Desc)])
+  @@index([conversationId])
+  @@map("pipeline_events")
+}
+
+model PromptBlockVersion {
+  id            BigInt   @id @default(autoincrement())
+  promptBlockId BigInt   @map("prompt_block_id")
+  versionNumber Int      @map("version_number")
+  content       String
+  changedBy     BigInt?  @map("changed_by")
+  changedAt     DateTime @default(now()) @map("changed_at") @db.Timestamptz
+  changeSummary String?  @map("change_summary")
+  wasApplied    Boolean  @default(true) @map("was_applied")
+
+  @@unique([promptBlockId, versionNumber])
+  @@map("prompt_block_versions")
+}
+
+model PromptBlockDraft {
+  id          BigInt   @id @default(autoincrement())
+  blockKey    String   @map("block_key")
+  tenantId    BigInt?  @map("tenant_id")
+  content     String
+  baseVersion Int      @map("base_version")
+  ownerUserId BigInt   @map("owner_user_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("prompt_block_drafts")
+}
+
+model FollowupTemplate {
+  id                 BigInt      @id @default(autoincrement())
+  tenantId           BigInt      @map("tenant_id")
+  name               String
+  channelKind        ChannelType @map("channel_kind")
+  provider           String      @default("manual")
+  body               String?
+  description        String?
+  providerTemplateId String?     @map("provider_template_id")
+  language           String?
+  category           String?
+  status             String      @default("approved")
+  variables          Json        @default("[]") @db.JsonB
+  providerMetadata   Json        @default("{}") @map("provider_metadata") @db.JsonB
+  aiPersonalize      Boolean     @default(false) @map("ai_personalize")
+  aiGuide            String?     @map("ai_guide")
+  createdBy          BigInt?     @map("created_by")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, name, channelKind])
+  @@map("followup_templates")
+}
+
+model TenantFollowupConfig {
+  tenantId            BigInt   @id @map("tenant_id")
+  enabled             Boolean  @default(false)
+  windowStartHour     Int      @default(9) @map("window_start_hour")
+  windowEndHour       Int      @default(21) @map("window_end_hour")
+  windowTimezone      String   @default("Europe/Madrid") @map("window_timezone")
+  maxFollowupsPerLead Int      @default(3) @map("max_followups_per_lead")
+  intervalsHours      Int[]    @default([24, 72, 168]) @map("intervals_hours")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("tenant_followup_config")
+}
+
+model AutomationKeyword {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt   @map("tenant_id")
+  type      String
+  pattern   String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId, isActive, type])
+  @@map("automation_keywords")
+}
+
+model TenantLabel {
+  id                BigInt   @id @default(autoincrement())
+  tenantId          BigInt   @map("tenant_id")
+  name              String
+  color             String   @default("#94a3b8")
+  description       String?
+  isSystem          Boolean  @default(false) @map("is_system")
+  destinationBucket String?  @map("destination_bucket")
+  pauseAiOnApply    Boolean  @default(false) @map("pause_ai_on_apply")
+  resumeAiOnApply   Boolean  @default(false) @map("resume_ai_on_apply")
+  autoAssignTo      BigInt?  @map("auto_assign_to")
+  createdBy         BigInt?  @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, name])
+  @@map("tenant_labels")
+}
+
+model ConversationLabel {
+  conversationId BigInt   @map("conversation_id")
+  labelId        BigInt   @map("label_id")
+  tenantId       BigInt   @map("tenant_id")
+  appliedBy      BigInt?  @map("applied_by")
+  appliedVia     String   @map("applied_via")
+  appliedAt      DateTime @default(now()) @map("applied_at") @db.Timestamptz
+
+  @@id([conversationId, labelId])
+  @@index([tenantId])
+  @@map("conversation_labels")
+}
+
+model LabelAutomationRule {
+  id           BigInt   @id @default(autoincrement())
+  tenantId     BigInt   @map("tenant_id")
+  labelId      BigInt   @map("label_id")
+  triggerType  String   @map("trigger_type")
+  triggerWho   String   @map("trigger_who")
+  triggerValue Json     @default("{}") @map("trigger_value") @db.JsonB
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([labelId])
+  @@map("label_automation_rules")
+}
+
+model ConversationNote {
+  id             BigInt   @id @default(autoincrement())
+  conversationId BigInt   @map("conversation_id")
+  tenantId       BigInt   @map("tenant_id")
+  authorUserId   BigInt?  @map("author_user_id")
+  authorEmail    String?  @map("author_email")
+  content        String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@map("conversation_notes")
+}
+
+model CalendarAccount {
+  id                   BigInt       @id @default(autoincrement())
+  tenantId             BigInt       @map("tenant_id")
+  integrationAccountId BigInt       @map("integration_account_id")
+  provider             String       @default("ghl")
+  externalCalendarId   String       @map("external_calendar_id")
+  name                 String
+  description          String?
+  slug                 String?
+  widgetBaseUrl        String?      @map("widget_base_url")
+  isDefault            Boolean      @default(false) @map("is_default")
+  isActive             Boolean      @default(true) @map("is_active")
+  channelKind          ChannelType? @map("channel_kind")
+  ghlMetadata          Json?        @default("{}") @map("ghl_metadata") @db.JsonB
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime     @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, externalCalendarId])
+  @@map("calendar_accounts")
+}
+
+model CalendarAppointment {
+  id                     BigInt   @id @default(autoincrement())
+  tenantId               BigInt   @map("tenant_id")
+  calendarAccountId      BigInt   @map("calendar_account_id")
+  externalAppointmentId  String   @map("external_appointment_id")
+  externalContactId      String?  @map("external_contact_id")
+  leadId                 BigInt?  @map("lead_id")
+  conversationId         BigInt?  @map("conversation_id")
+  title                  String?
+  startAt                DateTime @map("start_at") @db.Timestamptz
+  endAt                  DateTime @map("end_at") @db.Timestamptz
+  appointmentStatus      String   @default("new") @map("appointment_status")
+  assignedUserExternalId String?  @map("assigned_user_external_id")
+  source                 String?
+  matchMethod            String?  @map("match_method")
+  matchConfidence        Int?     @map("match_confidence") @db.SmallInt
+  notes                  String?
+  payload                Json     @default("{}") @db.JsonB
+  receivedAt             DateTime @default(now()) @map("received_at") @db.Timestamptz
+  updatedAt              DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, externalAppointmentId])
+  @@index([tenantId, startAt])
+  @@map("calendar_appointments")
+}
+
+model IgnoredUser {
+  id             BigInt       @id @default(autoincrement())
+  tenantId       BigInt       @map("tenant_id")
+  channel        ChannelType?
+  externalUserId String       @map("external_user_id")
+  reason         String?
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([tenantId, externalUserId])
+  @@map("ignored_users")
+}
+
+model VoiceCall {
+  id                       BigInt    @id @default(autoincrement())
+  tenantId                 BigInt    @map("tenant_id")
+  leadId                   BigInt?   @map("lead_id")
+  conversationId           BigInt?   @map("conversation_id")
+  direction                String
+  zadarmaCallId            String?   @map("zadarma_call_id")
+  elevenlabsConversationId String?   @map("elevenlabs_conversation_id")
+  status                   String    @default("ringing")
+  startedAt                DateTime? @map("started_at") @db.Timestamptz
+  endedAt                  DateTime? @map("ended_at") @db.Timestamptz
+  durationSeconds          Int?      @map("duration_seconds")
+  outcome                  String?
+  recordingUrl             String?   @map("recording_url")
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([conversationId])
+  @@map("voice_calls")
+}
+
+model VoiceTranscript {
+  id        BigInt      @id @default(autoincrement())
+  tenantId  BigInt      @map("tenant_id")
+  callId    BigInt      @map("call_id")
+  role      MessageRole
+  text      String
+  offsetMs  Int?        @map("offset_ms")
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([callId, offsetMs])
+  @@map("voice_transcripts")
+}
+
+model MockWhatsappOutbox {
+  id             BigInt    @id @default(autoincrement())
+  tenantId       BigInt    @map("tenant_id")
+  conversationId BigInt    @map("conversation_id")
+  parts          Json      @default("[]") @db.JsonB
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz
+
+  @@index([conversationId, createdAt])
+  @@map("mock_whatsapp_outbox")
 }

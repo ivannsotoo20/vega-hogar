@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "supabase:gen-types": "supabase gen types typescript --db-url \"$DIRECT_URL\" --schema public > src/database.types.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
