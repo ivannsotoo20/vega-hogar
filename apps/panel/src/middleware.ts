@@ -16,7 +16,12 @@ import { updateSession } from '@/lib/supabase/middleware';
  * este middleware NO valida rol mínimo para subprefijos (lo hace cada page).
  */
 
-const PROTECTED_PREFIXES = ['/dashboard', '/director', '/oficina', '/comercial', '/admin'];
+const PROTECTED_PREFIXES = [
+  '/dashboard', '/director', '/oficina', '/comercial', '/admin',
+  // Secciones del panel portado de SETTER (re-domain inmobiliario, F5+).
+  '/conversations', '/leads', '/pipeline', '/properties',
+  '/captacion', '/visits', '/keywords', '/labels', '/calendars', '/settings',
+];
 const AUTH_ONLY_PATHS = ['/login', '/auth/check-email'];
 const ALWAYS_PUBLIC_PATHS = ['/auth/callback', '/logout'];
 

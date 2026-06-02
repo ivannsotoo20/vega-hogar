@@ -46,6 +46,18 @@ export const PERMISSION_KEYS = [
   'admin.users.view',
   'admin.users.invite',
   'admin.permissions_matrix.edit',
+  'admin.cerebro.edit',
+  'admin.tenants.manage',
+  // Port SETTER (F6+): conversaciones, pipeline, captación, agente
+  'conversations.view',
+  'conversations.reply',
+  'pipeline.view',
+  'pipeline.move',
+  'captacion.view',
+  'labels.manage',
+  'keywords.manage',
+  'agent.pause',
+  'agent.handoff',
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

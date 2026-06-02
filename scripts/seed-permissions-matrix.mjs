@@ -54,6 +54,19 @@ const PERMISSIONS = [
   ['admin.users.view',                  [true,  true,  false, false, false]],
   ['admin.users.invite',                [true,  true,  false, false, false]],
   ['admin.permissions_matrix.edit',     [true,  false, false, false, false]],
+
+  // Port SETTER (F6+): conversaciones, pipeline, captación, agente, agencia.
+  ['admin.cerebro.edit',                [true,  false, false, false, false]],
+  ['admin.tenants.manage',              [true,  false, false, false, false]],
+  ['conversations.view',                [true,  true,  true,  true,  true ]],
+  ['conversations.reply',               [true,  true,  true,  true,  true ]],
+  ['pipeline.view',                     [true,  true,  true,  true,  true ]],
+  ['pipeline.move',                     [true,  true,  true,  true,  true ]],
+  ['captacion.view',                    [true,  true,  true,  false, true ]],
+  ['labels.manage',                     [true,  true,  false, false, false]],
+  ['keywords.manage',                   [true,  true,  false, false, false]],
+  ['agent.pause',                       [true,  true,  true,  true,  true ]],
+  ['agent.handoff',                     [true,  true,  true,  true,  true ]],
 ];
 
 const TENANT_ID = 1; // Vega Hogar (único tenant)

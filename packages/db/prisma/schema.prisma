@@ -126,7 +126,8 @@ model Tenant {
   name      String   @db.VarChar(120)
   settings  Json     @default("{}") @db.JsonB
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+  onboardedAt DateTime? @map("onboarded_at") @db.Timestamptz
 
   users                  User[]
   offices                Office[]
@@ -155,9 +156,10 @@ model User {
   email       String   @db.VarChar(255)
   fullName    String   @map("full_name") @db.VarChar(120)
   phone       String?  @db.VarChar(30)
-  role        UserRole
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  role          UserRole
+  active        Boolean  @default(true)
+  isAgencyAdmin Boolean  @default(false) @map("is_agency_admin")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
   tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)

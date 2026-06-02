@@ -34,4 +34,6 @@ export interface UserProfile {
   fullName: string | null;
   role: UserRole;
   active: boolean;
+  /** Agency-admin de Fyzon (cross-tenant). Independiente del rol. Fase 3 (port). */
+  isAgencyAdmin: boolean;
 }
