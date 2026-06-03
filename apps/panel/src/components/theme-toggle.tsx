@@ -1,15 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Subscribe que nunca emite: solo distinguimos snapshot servidor (false) vs cliente (true).
+const emptySubscribe = () => () => {};
+
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  // Guard "mounted" sin setState-in-effect: false en SSR/hidratación, true tras montar en
+  // cliente. Evita el hydration mismatch de next-themes (resolvedTheme es undefined en SSR).
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   const isDark = mounted && resolvedTheme === 'dark';
 
