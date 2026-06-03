@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "panel",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@vega-hogar/panel", "dev"],
+      "port": 3000
+    }
+  ]
+}
