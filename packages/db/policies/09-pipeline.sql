@@ -21,6 +21,21 @@ CREATE POLICY pipeline_events_select ON public.pipeline_events
   USING (tenant_id = public.current_tenant()
          AND public.current_user_role() IN ('admin','director_general'));
 
+-- pipeline_events — INSERT manual desde el panel (Fase 6): histórico de los cambios de
+-- fase del kanban. ACOTADO: solo source='manual' + event_type='phase_change' sobre una
+-- conversación visible (delega visibilidad al lead). NO permite outcomes ni source=motor
+-- (eso lo escribe el motor con service_role, que bypassa RLS). Cualquier rol que vea el
+-- lead puede mover su card; el SELECT del histórico sigue siendo solo admin/director_general.
+DROP POLICY IF EXISTS pipeline_events_manual_insert ON public.pipeline_events;
+CREATE POLICY pipeline_events_manual_insert ON public.pipeline_events
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    tenant_id = public.current_tenant()
+    AND conversation_id IN (SELECT id FROM public.conversations)
+    AND source = 'manual'
+    AND event_type = 'phase_change'
+  );
+
 
 -- prompt_block_versions — sin tenant_id (delega al prompt_block). Solo admin
 -- (editor de prompts es agency-level). Escritura service_role.
