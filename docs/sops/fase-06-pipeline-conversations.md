@@ -1,6 +1,6 @@
 # SOP · Fase 06 — Pipeline + Conversaciones + Etiquetas
 
-> **Estado**: 🟡 REDACTADO · pendiente de OK de Iván para ejecutar.
+> **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-08). Commit `5ce05df` en `checkpoint/fase-06`.
 > **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§7, F6).
 > **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-deep-locket.md`.
 > **Fases previas**: F3 cimientos · F4 datos · F5 `/leads` (patrón a replicar).
@@ -63,7 +63,7 @@ replica ese filtrado a mano. La matriz de permisos (keys ya sembradas en F3) gob
 | S4 — Pipeline `/pipeline` | ✅ | `pipeline.ts` (board+movePhase+apply/removeOutcome) + 6 componentes dnd-kit + ruta. Drag fase→current_phase(+evento), outcome→label. Probe `test-rls-pipeline.mjs` verde |
 | S5 — ManyChat / canal | ✅ | Verificado: panel sin código ManyChat; no se portaron filtros IG/FB/`direction`/tabla `channels`; enum `channel` |
 | S6 — Verificación | ✅ | typecheck/lint/build verdes · 4 probes RLS (pipeline/conversations/labels/anon-leaks 41/41) verdes · visual preview MCP (admin: /labels 10 system, /conversations 12 + thread + toggle pausa en vivo, /pipeline dual buyer+seller) · 0 errores consola |
-| S7 — Commit | ⬜ | `feat(fase-06)` pendiente de OK de Iván + memoria |
+| S7 — Commit | ✅ | commit `5ce05df` en `checkpoint/fase-06`, pusheado a origin (con OK de Iván) + memoria |
 
 ---
 
