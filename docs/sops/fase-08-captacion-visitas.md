@@ -1,6 +1,6 @@
 # SOP · Fase 08 — Captación + Visitas (`/visits` + `/captacion`)
 
-> **Estado**: 🟡 EN EJECUCIÓN (2026-06-10). Branch `checkpoint/fase-08` (desde `checkpoint/fase-07`).
+> **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-10). Branch `checkpoint/fase-08` (desde `checkpoint/fase-07`), commit `d44e5bd`, promovido a producción.
 > **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§9 F8, §10.3, §4 AÑADIR, §7).
 > **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-tidy-spark.md`.
 > **Fases previas**: F5 `/leads` · F6 pipeline/conversations/labels · F7 `/properties` (patrones a replicar).
@@ -80,7 +80,7 @@ como checkpoint duro con OK de Iván (ver §7 abajo). Único toque a Supabase en
 | S4 — `/captacion` cockpit | ✅ | cockpit + kpis + phase-board (read-only) + tasation-visits + page con gate; typecheck verde |
 | S5 — Cruce F7 | ✅ | botón "Dar de alta inmueble" (do+, seller/landlord) en captación + ficha lead + apertura `?new=1` |
 | S6 — Verificación | ✅ | **Probe destapó bug RLS F1 → migración 015 (OK Iván)**; `test-rls-visits-writes` verde; typecheck/lint/build verdes; anon-leaks 41/41; visual MCP (0 errores, seed pristino) |
-| S7 — Commit (⚠ STOP) | ⬜ | commit + push + deploy alias + PROMOTE prod + smoke + memoria |
+| S7 — Commit (⚠ STOP) | ✅ | commit `d44e5bd` + push + deploy Ready + **PROMOVIDO a prod** + smoke (/ 200, /login 200, /visits·/captacion 307→login) + memoria |
 
 ---
 
