@@ -38,6 +38,8 @@ export default async function PropertiesPage({
   const activeTab = parsePropertyTab(one(sp.tab));
   const selRaw = one(sp.selected);
   const selectedId = selRaw && /^\d+$/.test(selRaw) ? Number(selRaw) : null;
+  // Cruce F8: el botón "Dar de alta inmueble" de captación/ficha de lead llega con ?new=1.
+  const openNew = one(sp.new) === '1';
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,7 +49,12 @@ export default async function PropertiesPage({
           Catálogo de Vega Hogar: venta y alquiler en Valencia.
         </p>
       </header>
-      <PropertiesLayout filters={filters} activeTab={activeTab} selectedId={selectedId} />
+      <PropertiesLayout
+        filters={filters}
+        activeTab={activeTab}
+        selectedId={selectedId}
+        openNew={openNew}
+      />
     </div>
   );
 }

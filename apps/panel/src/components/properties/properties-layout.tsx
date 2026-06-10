@@ -31,10 +31,12 @@ export async function PropertiesLayout({
   filters,
   activeTab,
   selectedId,
+  openNew = false,
 }: {
   filters: PropertyFilterParams;
   activeTab: PropertyTabKey;
   selectedId: number | null;
+  openNew?: boolean;
 }) {
   const eff = await getEffectiveTenant();
   if (!eff) return null;
@@ -76,7 +78,7 @@ export async function PropertiesLayout({
       <section className="min-w-0">
         {canEdit && offices.length > 0 && (
           <div className="flex justify-end pb-3">
-            <AddPropertyDialog offices={offices} />
+            <AddPropertyDialog offices={offices} initialOpen={openNew} />
           </div>
         )}
         <PropertiesListPane

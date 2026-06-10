@@ -12,6 +12,7 @@ import {
   UserCog,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -229,6 +230,16 @@ export function LeadDetail({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+
+        {/* Cruce F8 → F7: dar de alta el inmueble que capta un vendedor/arrendador
+            (solo do+, que es quien puede crear inmuebles). */}
+        {canEdit && (lead.intent === 'seller' || lead.intent === 'landlord') && (
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/properties?new=1&fromLead=${lead.id}`}>
+              <Home aria-hidden /> Dar de alta inmueble
+            </Link>
+          </Button>
         )}
       </div>
 

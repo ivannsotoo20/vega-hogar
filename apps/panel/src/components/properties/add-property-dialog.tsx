@@ -39,9 +39,15 @@ function num(s: string): number | null {
   return s.trim() !== '' && Number.isFinite(n) ? n : null;
 }
 
-export function AddPropertyDialog({ offices }: { offices: OfficeOption[] }) {
+export function AddPropertyDialog({
+  offices,
+  initialOpen = false,
+}: {
+  offices: OfficeOption[];
+  initialOpen?: boolean;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [pending, startTransition] = useTransition();
 
   const [title, setTitle] = useState('');
