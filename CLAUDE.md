@@ -63,9 +63,18 @@ tsconfig.base.json
    aguanten escrutinio.
 8. **Cero commits sin OK de Iván**. Preparar cambios, revisar diff, esperar approval.
    Nunca `--no-verify` salvo petición explícita.
-9. **Editar prompts del agente** (cuando exista, Fase 6+): siempre via markdown source en
-   `apps/motor/prompts/source/` + script `prompts:build-seed` + snapshot en
-   `prompt_block_versions`. Nunca tocar `prompt_blocks` directo en BD.
+9. **Editar prompts del agente — BD como fuente de verdad** (modelo SETTER; decisión F9 #1b,
+   2026-06-11, reabre conscientemente la versión anterior "markdown-source-manda"). Los prompts
+   se editan vía el **editor del panel `/admin/cerebro`** (anon+RLS, admin): borrador
+   (`prompt_block_drafts`) → publicar → **snapshot en `prompt_block_versions`** + `UPDATE`
+   de `prompt_blocks`. La razón del giro: el panel corre en Vercel (sin filesystem), no puede
+   escribir el markdown del motor; y el versionado/rollback vive mejor en la UI. El markdown
+   source del motor (`apps/motor/prompts/source/` + `prompts:build-seed`, F10) pasa a ser
+   **artefacto downstream / seed-si-vacío** que NUNCA pisa lo publicado por la UI (se importa
+   solo para sembrar bloques que aún no existen). RLS: las tres tablas de prompts son
+   **admin-only**; el INSERT de versiones desde el panel lo habilita la migración 016. El motor
+   (service_role) sigue leyendo/escribiendo sin RLS. Regla operativa: el publish del Cerebro es
+   el camino canónico; NO editar `prompt_blocks` a mano por SQL fuera de ese flujo.
 10. **Seguridad — reglas duras** (cuando entren las features, Fase 13):
     - HMAC verify de webhooks en `enforce` en producción.
     - `safeLogBody()` en todos los logs (nunca loggear payloads raw con tokens).

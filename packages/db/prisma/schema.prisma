@@ -154,6 +154,7 @@ model Tenant {
   tenantTokens           TenantToken[]
   agentKnowledge         AgentKnowledge[]
   resources              Resource[]
+  pendingInvites         PendingInvite[]
 
   @@map("tenants")
 }
@@ -176,6 +177,8 @@ model User {
   assignedProperties    Property[]             @relation("PropertyAssignedTo")
   assignedLeads         Lead[]                 @relation("LeadAssignedTo")
   visitsAsComercial     Visit[]                @relation("VisitComercial")
+  invitesSent           PendingInvite[]        @relation("InviteInvitedBy")
+  invitesAccepted       PendingInvite[]        @relation("InviteAcceptedUser")
 
   @@unique([tenantId, email])
   @@index([tenantId, role])
@@ -198,6 +201,7 @@ model Office {
   assignments UserOfficeAssignment[]
   properties  Property[]
   leads       Lead[]
+  pendingInvites PendingInvite[]     @relation("InviteOffice")
 
   @@unique([tenantId, slug])
   @@map("offices")
@@ -218,6 +222,37 @@ model UserOfficeAssignment {
 
   @@unique([userId, officeId])
   @@map("user_office_assignments")
+}
+
+// Invitaciones por email (F9). Alta de miembros sobre el auth magic-link SSR.
+// El token NUNCA se guarda en claro: solo su sha256 (`token_hash`). La aceptación
+// crea la fila `users` vía la función SECURITY DEFINER `claim_invite` (el invitado
+// recién registrado no tiene rol → no puede auto-insertarse por RLS). `email` es
+// CITEXT en la BD (mapeado a String en Prisma, como otros TEXT+CHECK del port).
+// El índice parcial único `(tenant_id,email) WHERE activo` se gestiona en SQL
+// (no expresable en Prisma).
+model PendingInvite {
+  id             BigInt    @id @default(autoincrement())
+  tenantId       BigInt    @map("tenant_id")
+  email          String
+  role           UserRole
+  officeId       BigInt?   @map("office_id")
+  invitedBy      BigInt    @map("invited_by")
+  tokenHash      String    @map("token_hash")
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  acceptedAt     DateTime? @map("accepted_at") @db.Timestamptz
+  acceptedUserId BigInt?   @map("accepted_user_id")
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  office       Office? @relation("InviteOffice", fields: [officeId], references: [id], onDelete: SetNull)
+  inviter      User    @relation("InviteInvitedBy", fields: [invitedBy], references: [id], onDelete: Restrict)
+  acceptedUser User?   @relation("InviteAcceptedUser", fields: [acceptedUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tokenHash], name: "pending_invites_token_hash_key")
+  @@index([tenantId, createdAt])
+  @@map("pending_invites")
 }
 
 // =============================================================================

@@ -23,7 +23,10 @@ const PROTECTED_PREFIXES = [
   '/captacion', '/visits', '/keywords', '/labels', '/calendars', '/settings',
 ];
 const AUTH_ONLY_PATHS = ['/login', '/auth/check-email'];
-const ALWAYS_PUBLIC_PATHS = ['/auth/callback', '/logout'];
+// `/accept-invite` es pública: el invitado recién registrado tiene sesión pero
+// AÚN no fila en public.users (la crea claim_invite) → passthrough explícito para
+// evitar el signOut del branch `no_profile`.
+const ALWAYS_PUBLIC_PATHS = ['/auth/callback', '/logout', '/accept-invite'];
 
 function hasAnyPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));

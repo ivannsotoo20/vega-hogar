@@ -38,11 +38,23 @@ CREATE POLICY pipeline_events_manual_insert ON public.pipeline_events
 
 
 -- prompt_block_versions — sin tenant_id (delega al prompt_block). Solo admin
--- (editor de prompts es agency-level). Escritura service_role.
+-- (editor de prompts es agency-level). Lectura admin; escritura service_role (motor)
+-- + admin desde el panel (publish del Cerebro, F9 — migración 016).
 DROP POLICY IF EXISTS prompt_block_versions_select ON public.prompt_block_versions;
 CREATE POLICY prompt_block_versions_select ON public.prompt_block_versions
   FOR SELECT TO authenticated
   USING (public.current_user_role() = 'admin');
+
+-- INSERT del snapshot de versión desde el panel (F9, BD-como-fuente-de-verdad).
+-- Per-command (NO FOR ALL → no toca el SELECT). APPEND-ONLY (sin UPDATE/DELETE →
+-- histórico inmutable). El subquery está RLS-filtrado a bloques visibles del admin.
+DROP POLICY IF EXISTS prompt_block_versions_admin_insert ON public.prompt_block_versions;
+CREATE POLICY prompt_block_versions_admin_insert ON public.prompt_block_versions
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.current_user_role() = 'admin'
+    AND prompt_block_id IN (SELECT id FROM public.prompt_blocks)
+  );
 
 
 -- prompt_block_drafts — autosave del editor; solo admin (tenant propio o shared NULL).

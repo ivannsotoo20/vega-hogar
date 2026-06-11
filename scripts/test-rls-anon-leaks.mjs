@@ -66,6 +66,7 @@ const TABLES = [
   'voice_calls',
   'voice_transcripts',
   'mock_whatsapp_outbox',
+  'pending_invites',
 ];
 
 let passes = 0;
