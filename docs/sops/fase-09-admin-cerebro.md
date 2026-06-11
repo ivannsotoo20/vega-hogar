@@ -82,7 +82,7 @@ checkpoint**, nunca de golpe.
 | S9 — Invites + Members + accept-invite | ✅ | `invites.ts` (createInvite/list/revoke/resend) + members writes (role/active/oficina) + `accept-invite/*` (signUp+claim browser) + middleware; typecheck/lint/build verdes; render+invite-link smoke OK, 0 errores, invite de prueba borrado |
 | S10 — Verificación total | ✅ (con deuda) | probes ✅ (anon-leaks 42/42, cerebro, invites, members) + typecheck/lint/build ✅ + visual MCP por módulo ✅ (cerebro publish/restore en vivo, admin, settings, members render + invite-link, accept-invite render). **DEUDA S10 (decisión Iván 2026-06-11): E2E real de invitación (signUp+claim) DIFERIDO** — requiere Supabase signups ON + confirm OFF; el flujo está cubierto a nivel SQL por `test-rls-invites` (claim_invite email-match/mismatch/expired/revoked/used). Round-trip de escritura de miembros por UI también diferido (cubierto por `test-rls-members-writes`). |
 | S11 — Doctrina Regla 9 | ✅ | Regla 9 reescrita a BD-como-verdad en CLAUDE.md repo + `anti_jugadas.md` (ítem 15) |
-| S12 — Commit + promote (⚠ STOP) | 🟡 | commit `feat(fase-09)` + push + alias + PROMOTE + smoke + memoria |
+| S12 — Commit + promote (⚠ STOP) | ✅ | commit **`7470abe`** + push + deploy `6v960m7rg` Ready → **PROMOVIDO a prod** + smoke (`/` 200, `/login` 200, `/admin/*` 307, `/settings` 307, `/accept-invite` 200) + memoria (`fase_09_completada.md` + MEMORY.md) |
 
 ---
 
