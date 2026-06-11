@@ -7,12 +7,18 @@
  *                      a otro comercial al crear (canAssignOthers).
  *   · isCaptador     = asistente_captador (puede asignar comercial al crear tasaciones).
  * La RLS de `visits` ya escopa la visibilidad por rol → el panel no la replica.
+ *
+ * Asignación: el alta y la reasignación reciben `assignableMembers`
+ * (`listAssignableMembers`, espejo de la RLS de escritura tras la mig. 015) — así el
+ * director_oficina solo ve comerciales de su(s) oficina(s) y no se le ofrece una
+ * opción cross-oficina que la RLS rechazaría con 42501. El filtro de la barra
+ * lateral mantiene la lista completa (`members`).
  */
 
 import { getEffectiveTenant } from '@/lib/auth/effective-tenant';
 import { ROLE_HIERARCHY } from '@/lib/auth/types';
 import { getVisitDetail, listVisitsPage } from '@/lib/actions/visits';
-import { listMembers } from '@/lib/actions/members';
+import { listAssignableMembers, listMembers } from '@/lib/actions/members';
 import { listLeadsPage } from '@/lib/actions/leads';
 import { listPropertiesPage } from '@/lib/actions/properties';
 import type { VisitFilterParams, VisitTabKey } from '@/lib/visit-list-query';
@@ -37,9 +43,10 @@ export async function VisitsLayout({
   const eff = await getEffectiveTenant();
   if (!eff) return null;
 
-  const [pageRes, membersRes, leadsRes, propsRes, detailRes] = await Promise.all([
+  const [pageRes, membersRes, assignableRes, leadsRes, propsRes, detailRes] = await Promise.all([
     listVisitsPage({ filters, cursor: null, limit: PAGE_SIZE }),
     listMembers(),
+    listAssignableMembers(),
     listLeadsPage({ filters: {}, cursor: null, limit: OPTIONS_LIMIT }),
     listPropertiesPage({ filters: {}, cursor: null, limit: OPTIONS_LIMIT }),
     selectedId != null ? getVisitDetail(selectedId) : Promise.resolve(null),
@@ -55,6 +62,11 @@ export async function VisitsLayout({
 
   const page = pageRes.data!;
   const members = membersRes.ok ? membersRes.data : [];
+  // Comerciales que el viewer puede ASIGNAR (espejo de la RLS de escritura, mig 015):
+  // el director_oficina solo ve los de su(s) oficina(s); admin/dg/asistente, todos.
+  // Acota el Select de alta y el dropdown de reasignar (el filtro de la barra usa
+  // la lista completa). Si falla la carga, degradamos a `members` (la RLS protege).
+  const assignableMembers = assignableRes.ok ? assignableRes.data : members;
   const detail = detailRes && detailRes.ok ? (detailRes.data ?? null) : null;
 
   const leadOptions: SelectOption[] =
@@ -84,7 +96,7 @@ export async function VisitsLayout({
           <AddVisitDialog
             leads={leadOptions}
             properties={propertyOptions}
-            members={members}
+            members={assignableMembers}
             viewerId={eff.userId}
             canAssignOthers={canReassign}
             isCaptador={isCaptador}
@@ -104,7 +116,7 @@ export async function VisitsLayout({
 
       <VisitDetailSheet
         detail={detail}
-        members={members}
+        members={assignableMembers}
         viewerId={eff.userId}
         canReassign={canReassign}
       />
