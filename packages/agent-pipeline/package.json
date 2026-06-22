@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Pipeline 3-LLM del agente comercial IA (Generator + Judge + Splitter) — Fase 6",
+  "description": "Pipeline 3-LLM del agente comercial IA (Generator + Judge + Splitter) — Fase 10",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
@@ -13,10 +13,20 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.73.0",
+    "@supabase/supabase-js": "^2.103.3",
+    "@vega-hogar/db": "workspace:*",
+    "@vega-hogar/prompt-composer": "workspace:*",
+    "@vega-hogar/shared-validator": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
   }
 }

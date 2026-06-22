@@ -4,10 +4,15 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PrismaClient } from '@prisma/client';
+import type { Database } from './database.types.js';
 
 export * from '@prisma/client';
 
-export type VegaHogarSupabase = SupabaseClient;
+// Tipos generados de Supabase (F10) — el motor tipa su cliente service-role con
+// `Database` para cazar bugs de nombre de columna en compile-time.
+export type { Database, Json } from './database.types.js';
+
+export type VegaHogarSupabase = SupabaseClient<Database>;
 
 export interface CreateSupabaseClientParams {
   url: string;
@@ -19,7 +24,7 @@ export interface CreateSupabaseClientParams {
  * Service_role solo en motor — nunca en panel.
  */
 export function createSupabaseClient(params: CreateSupabaseClientParams): VegaHogarSupabase {
-  return createClient(params.url, params.key, {
+  return createClient<Database>(params.url, params.key, {
     auth: { persistSession: false },
   });
 }

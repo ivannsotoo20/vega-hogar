@@ -39,3 +39,7 @@ coverage/
 *.cloudflared.log
 
 .vercel
+
+# Supabase CLI — artefactos locales (S5: linked project + branches temporales)
+supabase/.temp/
+supabase/.branches/

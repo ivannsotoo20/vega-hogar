@@ -1,12 +1,44 @@
-// @vega-hogar/channel-adapters — drivers de canales.
-// Fase 5: WhatsApp YCloud + mock (driver simulado para alumnos sin BSP real).
-// Fase 8: Voz Zadarma (SIP + WebSocket) + ElevenLabs TTS + Deepgram/Whisper STT.
-//
-// Estructura prevista:
-//   src/whatsapp/interface.ts   → contrato WhatsAppAdapter (send, parseInbound)
-//   src/whatsapp/ycloud.ts      → driver real YCloud BSP
-//   src/whatsapp/mock.ts        → driver mock para simulator del panel
-//   src/voice/interface.ts      → contrato VoiceAdapter
-//   src/voice/zadarma.ts        → driver SIP Zadarma
+// @vega-hogar/channel-adapters — drivers de canales del agente.
+// F10 S9: WhatsApp (YCloud + mock, factory por WHATSAPP_PROVIDER).
+// F12: voz (Zadarma + ElevenLabs + STT).
 
-export const CHANNEL_ADAPTERS_PLACEHOLDER = 'fase-5-y-8';
+// ---------- Tipos base ----------
+export type { Channel, InboundMessage } from './types.js';
+
+// ---------- WhatsApp: abstracción Vega (outbound) ----------
+export type {
+  WhatsAppProvider,
+  OutboundWhatsApp,
+  WhatsAppSendResult,
+  WhatsAppAdapter,
+} from './whatsapp/interface.js';
+export { YCloudWhatsAppDriver, type YCloudWhatsAppDriverOptions } from './whatsapp/ycloud.js';
+export { MockWhatsAppDriver, type MockWhatsAppDriverOptions } from './whatsapp/mock.js';
+export { createWhatsAppAdapter, type WhatsAppFactoryConfig } from './whatsapp/factory.js';
+
+// ---------- YCloud (BSP oficial Meta) — transporte de bajo nivel ----------
+export {
+  ycloudSendText,
+  YCloudApiError,
+  type YCloudSendTextParams,
+  type YCloudSendTextResult,
+} from './ycloud/api-client.js';
+export { parseYCloudInbound, type YCloudParsedResult } from './ycloud/parser.js';
+export {
+  ycloudListTemplates,
+  ycloudSendTemplate,
+  extractTemplateBody,
+  extractTemplateVariables,
+  YCloudTemplatesError,
+  type YCloudTemplateRow,
+  type YCloudListTemplatesParams,
+  type YCloudSendTemplateParams,
+  type YCloudSendTemplateResult,
+} from './ycloud/templates.js';
+export {
+  ycloudInboundPayloadSchema,
+  type YCloudInboundPayload,
+  type YCloudMessage,
+  type YCloudContact,
+  type YCloudStatus,
+} from './ycloud/types.js';

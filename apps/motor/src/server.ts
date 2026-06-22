@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import sensible from '@fastify/sensible';
+import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.js';
 
@@ -16,6 +18,11 @@ export async function buildServer(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
+  // Hardening (seguridad dura, CLAUDE.md §10): cabeceras seguras + CORS cerrado.
+  // El motor solo recibe webhooks server-to-server + endpoints internos (bearer);
+  // no hay clientes de navegador → origin:false rechaza cross-origin del browser.
+  await app.register(helmet);
+  await app.register(cors, { origin: false });
   await app.register(sensible);
   await app.register(healthRoutes);
 
