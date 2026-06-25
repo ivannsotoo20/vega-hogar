@@ -27,6 +27,7 @@
     "@vega-hogar/channel-adapters": "workspace:*",
     "@vega-hogar/composio-actions": "workspace:*",
     "@vega-hogar/db": "workspace:*",
+    "@vega-hogar/prompt-composer": "workspace:*",
     "@vega-hogar/shared-validator": "workspace:*",
     "dotenv": "^16.6.1",
     "fastify": "^5.2.1",

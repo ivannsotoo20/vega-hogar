@@ -15,10 +15,15 @@ const candidates = [
   resolve(process.cwd(), '.env.local'),
   resolve(process.cwd(), '../../.env.local'),
 ];
-for (const path of candidates) {
-  if (existsSync(path)) {
-    loadEnv({ path, override: true });
-    break;
+// Bajo vitest NO cargamos `.env.local`: los tests son herméticos (las vars vienen
+// de `vitest.config.ts` → `test.env`). Evita que valores vacíos del .env.local de
+// desarrollo (vars que Iván rellena por fase) pisen los dummies de test.
+if (!process.env.VITEST) {
+  for (const path of candidates) {
+    if (existsSync(path)) {
+      loadEnv({ path, override: true });
+      break;
+    }
   }
 }
 

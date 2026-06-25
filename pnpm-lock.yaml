@@ -59,6 +59,9 @@ importers:
       '@vega-hogar/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@vega-hogar/prompt-composer':
+        specifier: workspace:*
+        version: link:../../packages/prompt-composer
       '@vega-hogar/shared-validator':
         specifier: workspace:*
         version: link:../../packages/shared-validator
