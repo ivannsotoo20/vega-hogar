@@ -106,15 +106,15 @@ intervalos 24/72/168) · **3 prompt_blocks placeholder** `-- PENDIENTE F10 --` (
 | S7 — agent-pipeline re-domain | ✅ | respond_as_inmobiliario (4 required: message_raw/conversation_status/phase_decision 0..7/detected_intent; + proposed_property_ids, proposed_visit_slot, is_tasation_visit, contraoferta_registrada, handoff_reason; maxLength din 310-1150) + types `InmobiliarioToolOutput` + generator (composePrompt API nueva, dynamicContext) + judge (guardrails re-domain V11′) + splitter (whatsapp/voice) + history (columna `role`: lead→user, agent/human/system→assistant; func pura) + cost + llm-call-log (cliente tipado, Json) + pipeline (V19 injected/proposed; retry V17). Cliente `SupabaseClient<Database>`. typecheck verde + **29 tests** (tool-schema + history 4 roles) |
 | S8 — shared-validator | ✅ | V00-V19 + types + index + detect-addressing; **V11′ invertida** + **V19 anti-alucinación**; typecheck verde |
 | S9 — channel-adapters | ✅ | ycloud transporte (api-client `ycloudSendText` + types zod + parser inbound + templates) copia fiel + abstracción Vega `whatsapp/` (interface `OutboundWhatsApp {tenantId, conversationId, toPhone, parts}` + driver `ycloud` [loop parts→sendDirectly] + driver `mock` [INSERT `mock_whatsapp_outbox`: parts JSONB, status=pending, SIN phone] + factory `createWhatsAppAdapter` por WHATSAPP_PROVIDER). Deps: zod + @supabase/supabase-js + @vega-hogar/db. typecheck verde + **9 tests** (factory→mock/ycloud, mock insert, ycloud fetch-mock, parseYCloudInbound) |
-| **F10b — Núcleo vs mock (S10–S18)** | ⏳ | |
-| S10 — services neutros | ⏳ | |
-| S11 — history role-mapping | ⏳ 🔴 | test 4 roles |
-| S12 — lead-ingest sin channels | ⏳ 🔴 | test idempotencia |
-| S13 — process-debounced (NÚCLEO) | ⏳ 🔴🔴 | revisión línea-a-línea |
-| S14 — agent-tools + mock outbox | ⏳ 🔴 | parts + phone por join + V19 array |
-| S15 — webhook-mock-whatsapp | ⏳ 🔴 | debounce + safeLogBody |
-| S16 — scheduler/cadencia mock | ⏳ | cron OFF |
-| S17 — labels + seed keywords | ⏳ 🔴 | tabla existe, NO migración |
+| **F10b — Núcleo vs mock (S10–S18)** | 🟡 EN CURSO | **Bloque 1 ✅** (`8163838`) · **Bloque 2 ✅** (S15/S16/S17 código; seed pendiente OK) · falta Bloque 3 (S18 golden path + panel) |
+| S10 — services neutros | ✅ | pipeline-runs (sin multimodal) + pipeline-stats + llm-models (carga llm_configs). enrich-media/personalize diferidos (lean) |
+| S11 — history role-mapping | ✅ | hecho en S7 (`rowsToConversationMessages` + test 4 roles); consumido por S13 |
+| S12 — lead-ingest sin channels | ✅ | reescrito: upsert por (tenant,phone), getOrCreateConversation, insertInboundMessage(role=lead), resolveTenantByToken. Test idempotencia ✓ |
+| S13 — process-debounced (NÚCLEO) | ✅ | re-domain completo (gates+RAG+pipeline+POST mapeo §1: status 1:1, auto-promote, razonamiento, visits, handoff, pipeline_events, salida mock). Recortes lean (GHL/trainer_prefs/multimodal/notif/mirror). Tests unitarios; integración=Bloque 3 |
+| S14 — agent-tools + mock outbox | ✅ | buscar-inmuebles (ranking+relax) + consultar-disponibilidad (mock) + agendar-visita/tasacion (visits+round-robin+re-valida) + escalar + comercial-resolver + outbound-sender (V19 array). Tests ✓ |
+| S15 — webhook-mock-whatsapp | ✅ | `POST /webhooks/whatsapp-mock/:tenant_token` → resolveTenantByToken → lead-ingest → classifyInbound (source) → debounce (redis). HMAC log; safeLogBody. Smoke=Bloque 3 |
+| S16 — scheduler/cadencia mock | ✅ | `cron-scheduler.ts` debounce-tick (gated `MOTOR_CRON_ENABLED`, OFF por defecto) → process-debounced; `runDebounceTick` testeado (DI). Cola `message_schedules`/outbound-tick diferidos a F10c (lean) |
+| S17 — labels + seed keywords | ✅ | labels apply-label + apply-system-labels (re-domain Vega, wired en núcleo); keywords.ts (classifyInbound). Seed: `automation_keywords`(9) + `tenant_tokens` mock — **código listo, ejecución pendiente OK de Iván**. evaluate-text-rules diferido (lean) |
 | S18 — golden path e2e + panel | ⏳ 🔴 | composer + outbox viewer |
 | **F10c — Canal real gated (S19–S22)** | ⏳ | |
 | S19 — YCloud real + welcome-template | ⏳ 🔴 | |

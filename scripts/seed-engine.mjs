@@ -50,6 +50,24 @@ const LABELS = [
   ['Cierre perdido', '#6b7280', 'lost', true],
 ];
 
+// automation_keywords: pattern (substring case-insensitive), type ∈ bienvenida|lm|inbound|wa_open.
+// Clasifican el inbound para fijar conversations.conversation_source (F10b).
+const KEYWORDS = [
+  ['comprar', 'inbound'],
+  ['compra', 'inbound'],
+  ['alquilar', 'inbound'],
+  ['alquiler', 'inbound'],
+  ['vender', 'inbound'],
+  ['tasar', 'inbound'],
+  ['tasación', 'inbound'],
+  ['piso', 'inbound'],
+  ['info', 'inbound'],
+];
+
+// Token del webhook MOCK de WhatsApp (LOCAL ONLY — golden path / simulador del panel;
+// el motor no se despliega a prod en F10). El harness lo lee para postear el inbound.
+const MOCK_WA_TOKEN = 'mock-wa-vega-dev-token';
+
 // role, provider, model (api_key_encrypted NULL → la key real viene por env del motor)
 const LLM_CONFIGS = [
   ['generator', 'anthropic', 'claude-haiku-4-5'],
@@ -124,6 +142,30 @@ try {
     labelsN++;
   }
 
+  // automation_keywords (tabla existe; NO migración). Guard WHERE NOT EXISTS por (tenant, pattern).
+  let kwN = 0;
+  for (const [pattern, type] of KEYWORDS) {
+    const { rowCount } = await client.query(
+      `INSERT INTO public.automation_keywords (tenant_id, pattern, type, is_active)
+       SELECT $1::bigint, $2::text, $3::text, true
+       WHERE NOT EXISTS (
+         SELECT 1 FROM public.automation_keywords WHERE tenant_id = $1::bigint AND pattern = $2::text
+       )`,
+      [TENANT_ID, pattern, type],
+    );
+    kwN += rowCount;
+  }
+
+  // tenant_tokens — token del webhook MOCK (guard por tenant + purpose).
+  const { rowCount: tokN } = await client.query(
+    `INSERT INTO public.tenant_tokens (tenant_id, token, purpose, is_active)
+     SELECT $1::bigint, $2::text, 'whatsapp_mock', true
+     WHERE NOT EXISTS (
+       SELECT 1 FROM public.tenant_tokens WHERE tenant_id = $1::bigint AND purpose = 'whatsapp_mock'
+     )`,
+    [TENANT_ID, MOCK_WA_TOKEN],
+  );
+
   // prompt_blocks placeholders (sin unique → guard por block_key + tenant)
   let blocksN = 0;
   for (const [tid, key, content, sort] of PROMPT_BLOCKS) {
@@ -139,7 +181,7 @@ try {
     blocksN += rowCount;
   }
 
-  console.log(`[seed-engine] OK · phases=${phasesN} llm_configs=${llmN} labels=${labelsN} prompt_blocks(+${blocksN}) tenant_configs+followup=ensured`);
+  console.log(`[seed-engine] OK · phases=${phasesN} llm_configs=${llmN} labels=${labelsN} keywords(+${kwN}) mock_token(+${tokN}) prompt_blocks(+${blocksN}) tenant_configs+followup=ensured`);
 } catch (err) {
   console.error('FATAL:', err.message);
   if (err.hint) console.error('  hint:', err.hint);

@@ -75,6 +75,13 @@ const envSchema = z.object({
   MOTOR_INTERNAL_URL: z.string().url().default('http://localhost:3010'),
   PANEL_PUBLIC_URL: z.string().url().default('https://vega-hogar-panel.vercel.app'),
 
+  // --- Cron del motor (debounce-tick → process-debounced). Gated: OFF por defecto.
+  //     Local/golden path lo activa; el go-live del VPS también. ---
+  MOTOR_CRON_ENABLED: z
+    .string()
+    .transform((v) => v === 'true' || v === '1')
+    .default('false'),
+
   // --- Cron de followups automáticos (gated: OFF por defecto; abre canal real) ---
   FOLLOWUP_CRON_ENABLED: z
     .string()

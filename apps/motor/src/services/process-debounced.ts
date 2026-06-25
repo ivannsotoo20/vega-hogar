@@ -17,6 +17,7 @@ import { buscarInmuebles } from './agent-tools/buscar-inmuebles.js';
 import { consultarDisponibilidad } from './agent-tools/consultar-disponibilidad.js';
 import { agendarVisita } from './agent-tools/agendar-visita.js';
 import { escalarAHumano } from './agent-tools/escalar-a-humano.js';
+import { applySystemLabels } from './labels/index.js';
 import { sendAgentReply } from './outbound-sender.js';
 
 /**
@@ -196,6 +197,8 @@ export async function processDebounced(
 
     // 10. Agenda (si el lead confirmó slot) → visits. Conflicto → degradar (anti-zombie).
     let appointmentScheduledAt: string | null = null;
+    let bookedVisit = false;
+    let bookedIsTasation = false;
     if (out.proposed_visit_slot) {
       const isTasation = out.is_tasation_visit ?? track === 'seller';
       const propertyId = isTasation ? null : (out.proposed_property_ids?.[0] ?? null);
@@ -211,6 +214,8 @@ export async function processDebounced(
       });
       if (res.ok) {
         appointmentScheduledAt = new Date(Date.parse(out.proposed_visit_slot)).toISOString();
+        bookedVisit = true;
+        bookedIsTasation = isTasation;
       } else {
         logger.warn({ conversationId, reason: res.reason }, '[process-debounced] agendarVisita no-ok → degradando');
         // Anti-zombie: si el LLM marcó handoff por agenda pero no se agendó, degradar.
@@ -265,6 +270,14 @@ export async function processDebounced(
         officeId,
         preferredUserId: (lead.assigned_to_user_id as number | null) ?? null,
       });
+    }
+
+    // 11.6. System labels (best-effort): Lead caliente / Cierre perdido / Visita agendada / Tasación pendiente.
+    try {
+      const labelsRes = await applySystemLabels({ supabase, tenantId, conversationId, status: newStatus, bookedVisit, isTasation: bookedIsTasation });
+      if (labelsRes.errors.length > 0) logger.warn({ conversationId, errors: labelsRes.errors }, '[process-debounced] applySystemLabels errors');
+    } catch (err) {
+      logger.warn({ err, conversationId }, '[process-debounced] applySystemLabels threw (non-fatal)');
     }
 
     // 12. pipeline_events (cambios de fase/estado). Best-effort.
