@@ -32,6 +32,7 @@ import type { LabelOption } from '@/lib/actions/labels';
 
 import { AiControl } from './ai-control';
 import { Composer } from './composer';
+import { OutboxViewer } from './outbox-viewer';
 import { Thread } from './thread';
 import { convStatusLabel } from './format';
 
@@ -162,13 +163,16 @@ export function ConversationDetailView({
         ) : null}
       </div>
 
-      {/* Hilo de mensajes + composer (deshabilitado) */}
+      {/* Hilo de mensajes + composer (envío manual del agente humano) */}
       <div className="overflow-hidden rounded-lg border border-border">
         <div className="max-h-[420px] overflow-y-auto px-3">
           <Thread messages={detail.messages} />
         </div>
-        <Composer />
+        <Composer conversationId={c.id} />
       </div>
+
+      {/* Salida WhatsApp simulada (mock outbox) — verificación del golden path */}
+      <OutboxViewer entries={detail.outbox} />
 
       {/* Notas internas */}
       <div className="flex flex-col gap-2">

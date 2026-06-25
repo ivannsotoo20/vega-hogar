@@ -63,6 +63,14 @@ export interface ConvNote {
   createdAt: string;
 }
 
+/** Burbuja(s) que el motor "envió" por el driver mock (`mock_whatsapp_outbox`). */
+export interface OutboxEntry {
+  id: number;
+  parts: string[];
+  status: string;
+  createdAt: string;
+}
+
 export interface ConversationDetail {
   conversation: ConversationListRow;
   leadEmail: string | null;
@@ -70,6 +78,7 @@ export interface ConversationDetail {
   handoffReason: string | null;
   messages: ThreadMessage[];
   notes: ConvNote[];
+  outbox: OutboxEntry[];
 }
 
 // Literales de una sola línea (evita GenericStringError del parser de .select()).
@@ -315,7 +324,7 @@ export async function getConversationDetail(
 
   const leadId = Number((convRaw as Record<string, unknown>).lead_id);
 
-  const [leadsById, labelsByConv, msgsRes, notesRes] = await Promise.all([
+  const [leadsById, labelsByConv, msgsRes, notesRes, outboxRes] = await Promise.all([
     fetchLeadsByIds(supabase, [leadId]),
     fetchLabelsByConvId(supabase, [conversationId]),
     supabase
@@ -330,6 +339,12 @@ export async function getConversationDetail(
       .select('id, content, author_email, created_at')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('mock_whatsapp_outbox')
+      .select('id, parts, status, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
       .limit(200),
   ]);
 
@@ -357,6 +372,13 @@ export async function getConversationDetail(
     createdAt: String(n.created_at),
   }));
 
+  const outbox: OutboxEntry[] = ((outboxRes.data ?? []) as Array<Record<string, unknown>>).map((o) => ({
+    id: Number(o.id),
+    parts: Array.isArray(o.parts) ? (o.parts as unknown[]).map((p) => String(p)) : [],
+    status: String(o.status ?? 'pending'),
+    createdAt: String(o.created_at),
+  }));
+
   return {
     ok: true,
     data: {
@@ -366,6 +388,7 @@ export async function getConversationDetail(
       handoffReason: ((convRaw as Record<string, unknown>).handoff_reason as string | null) ?? null,
       messages,
       notes,
+      outbox,
     },
   };
 }
@@ -466,6 +489,52 @@ export async function setConversationBlocked(input: {
 
   revalidateConv(input.conversationId);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Envío manual del agente humano (composer) — role='human', anon+RLS
+// ---------------------------------------------------------------------------
+
+export async function sendManualMessage(input: {
+  conversationId: number;
+  content: string;
+}): Promise<ActionResult<{ id: number }>> {
+  if (!isValidId(input.conversationId)) return { ok: false, error: 'invalid_id' };
+  const auth = await authorizeWrite('viewer'); // comercial+ pueden responder al lead
+  if (!auth.ok) return auth;
+
+  const content = (input.content ?? '').trim();
+  if (content.length === 0) return { ok: false, error: 'empty_message' };
+  if (content.length > 4000) return { ok: false, error: 'message_too_long' };
+
+  // 1) Mensaje del humano (role='human'). RLS conversation_messages_modify lo permite
+  //    (tenant + conversación accesible). NUNCA service-role.
+  const { data, error } = await auth.supabase
+    .from('conversation_messages')
+    .insert({
+      conversation_id: input.conversationId,
+      tenant_id: auth.eff.tenantId,
+      role: 'human',
+      content,
+      content_type: 'text',
+    })
+    .select('id')
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? 'insert_failed' };
+
+  // 2) El humano se hizo cargo → pausar la IA + tocar last_message_at.
+  const { error: updErr } = await auth.supabase
+    .from('conversations')
+    .update({
+      ai_paused_until: 'infinity',
+      last_message_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.conversationId);
+  if (updErr) return { ok: false, error: updErr.message };
+
+  revalidateConv(input.conversationId);
+  return { ok: true, data: { id: Number(data.id) } };
 }
 
 // ---------------------------------------------------------------------------
