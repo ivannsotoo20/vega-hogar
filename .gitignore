@@ -43,3 +43,5 @@ coverage/
 # Supabase CLI — artefactos locales (S5: linked project + branches temporales)
 supabase/.temp/
 supabase/.branches/
+
+.vercel
