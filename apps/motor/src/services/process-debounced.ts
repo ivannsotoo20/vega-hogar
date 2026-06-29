@@ -93,7 +93,7 @@ export async function processDebounced(
   // 2. Cargar lead.
   const { data: lead, error: leadErr } = await supabase
     .from('leads')
-    .select('id, phone, full_name, email, intent, office_id, assigned_to_user_id')
+    .select('id, phone, full_name, email, intent, office_id, assigned_to_user_id, tracking_uuid')
     .eq('id', Number(conv.lead_id))
     .maybeSingle();
   if (leadErr) throw new Error(`processDebounced: lead lookup ${leadErr.message}`);
@@ -138,7 +138,7 @@ export async function processDebounced(
     }
     let availableSlots: AvailableSlot[] | undefined;
     if (currentPhase >= AGENDA_MIN_PHASE && track !== 'shared') {
-      availableSlots = await consultarDisponibilidad({ officeId, isTasacion: track === 'seller' });
+      availableSlots = await consultarDisponibilidad({ supabase, tenantId, officeId, isTasacion: track === 'seller' });
     }
 
     // 8. Modelos por etapa (de llm_configs) + compose + pipeline.
@@ -211,6 +211,10 @@ export async function processDebounced(
         propertyId,
         officeId,
         preferredUserId: (lead.assigned_to_user_id as number | null) ?? null,
+        conversationId,
+        leadName: leadContact.fullName,
+        leadEmail: leadContact.email,
+        leadTrackingUuid: (lead.tracking_uuid as string | null) ?? null,
       });
       if (res.ok) {
         appointmentScheduledAt = new Date(Date.parse(out.proposed_visit_slot)).toISOString();

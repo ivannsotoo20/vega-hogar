@@ -2612,6 +2612,7 @@ export type Database = {
         | "composio"
         | "meta_ads"
         | "ghl"
+        | "cal_com"
       lead_intent: "buyer" | "tenant" | "seller" | "landlord" | "unknown"
       lead_status:
         | "new"
@@ -2820,6 +2821,7 @@ export const Constants = {
         "composio",
         "meta_ads",
         "ghl",
+        "cal_com",
       ],
       lead_intent: ["buyer", "tenant", "seller", "landlord", "unknown"],
       lead_status: [

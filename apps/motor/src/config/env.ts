@@ -56,6 +56,8 @@ const envSchema = z.object({
   WHATSAPP_PROVIDER: z.enum(['mock', 'ycloud']).default('mock'),
   YCLOUD_API_BASE: z.string().url().default('https://api.ycloud.com'),
   YCLOUD_API_KEY: z.string().optional(),
+  //   Número del business en E.164 (from de YCloud). Requerido para go-live ycloud.
+  YCLOUD_BUSINESS_PHONE: z.string().optional(),
   //   disabled → no verifica firma · warn → log si falla + continúa · enforce → 401.
   YCLOUD_WEBHOOK_VERIFY_MODE: verifyMode.default('warn'),
 

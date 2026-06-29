@@ -41,7 +41,11 @@ export async function sendAgentReply(
     provider === 'ycloud'
       ? createWhatsAppAdapter({
           provider: 'ycloud',
-          ycloud: { apiKey: env.YCLOUD_API_KEY ?? '', businessPhone: '', baseUrl: env.YCLOUD_API_BASE },
+          ycloud: {
+            apiKey: env.YCLOUD_API_KEY ?? '',
+            businessPhone: env.YCLOUD_BUSINESS_PHONE ?? '',
+            baseUrl: env.YCLOUD_API_BASE,
+          },
         })
       : createWhatsAppAdapter({ provider: 'mock', supabase });
 

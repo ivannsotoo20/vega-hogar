@@ -5,6 +5,7 @@ import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.js';
 import { webhookMockWhatsappRoutes } from './routes/webhook-mock-whatsapp.js';
+import { webhookCalcomRoutes } from './routes/webhook-calcom.js';
 import { cronSchedulerPlugin } from './plugins/cron-scheduler.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -26,8 +27,22 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(helmet);
   await app.register(cors, { origin: false });
   await app.register(sensible);
+
+  // Parser JSON que conserva el body crudo en `request.rawBody` (necesario para
+  // verificar firmas HMAC de webhooks: Cal.com x-cal-signature, YCloud, etc.).
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const raw = typeof body === 'string' ? body : body.toString('utf8');
+    (_req as unknown as { rawBody?: string }).rawBody = raw;
+    try {
+      done(null, raw.length > 0 ? JSON.parse(raw) : {});
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
+
   await app.register(healthRoutes);
   await app.register(webhookMockWhatsappRoutes);
+  await app.register(webhookCalcomRoutes);
 
   // Cron del motor (debounce-tick → process-debounced). Gated OFF por defecto.
   await app.register(cronSchedulerPlugin);
