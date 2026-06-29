@@ -116,11 +116,11 @@ intervalos 24/72/168) · **3 prompt_blocks placeholder** `-- PENDIENTE F10 --` (
 | S16 — scheduler/cadencia mock | ✅ | `cron-scheduler.ts` debounce-tick (gated `MOTOR_CRON_ENABLED`, OFF por defecto) → process-debounced; `runDebounceTick` testeado (DI). Cola `message_schedules`/outbound-tick diferidos a F10c (lean) |
 | S17 — labels + seed keywords | ✅ | labels apply-label + apply-system-labels (re-domain Vega, wired en núcleo); keywords.ts (classifyInbound). Seed: `automation_keywords`(9) + `tenant_tokens` mock — **código listo, ejecución pendiente OK de Iván**. evaluate-text-rules diferido (lean) |
 | S18 — golden path e2e + panel | 🟢 | Panel: composer habilitado (`sendManualMessage` role='human', anon+RLS, pausa IA) + viewer `mock_whatsapp_outbox` (RLS authenticated, sin migración) + outbox en `getConversationDetail`. Harness `scripts/golden-path-smoke.mjs` (+`--cleanup`). typecheck+build verdes. **Smoke en vivo pendiente del entorno de Iván** (Docker + ANTHROPIC_API_KEY + `MOTOR_CRON_ENABLED=true`) |
-| **F10c — Canal real gated (S19–S22)** | ⏳ | |
-| S19 — YCloud real + welcome-template | ⏳ 🔴 | |
-| S20 — Cal.com + webhook + migr 018 | ⏳ 🔴 | 42/42 |
-| S21 — seguridad dura | ⏳ 🔴 | HMAC enforce flag + cron OFF |
-| S22 — prompts Regla 9 | ⏳ 🔴 | seed-si-placeholder |
+| **F10c — Canal real gated (S19–S22)** | 🟡 PARCIAL | **S22 ✅** (prompts) · S19/S20/S21 DIFERIDOS a otra sesión (decisión Iván: priorizar el cerebro) |
+| S19 — YCloud real + welcome-template | ⏳ 🔴 | DIFERIDO (gated, go-live) |
+| S20 — Cal.com + webhook + migr 018 | ⏳ 🔴 | DIFERIDO (Cal.com v2 API ya investigada: GET /v2/slots + POST /v2/bookings + x-cal-signature; migr 018 `ALTER TYPE integration_provider ADD VALUE cal_com`) |
+| S21 — seguridad dura | ⏳ 🔴 | DIFERIDO (assertHttpsUrl + HMAC enforce flag + cron OFF) |
+| S22 — prompts Regla 9 | ✅ | `apps/motor/prompts/source/{core-v1-base,agencia-vega,output-contract-v1}.md` (cerebro Vega v1: identidad+flujo dual+fases 0-7+anti-jugadas) + `scripts/build-prompts-seed.mjs` (seed-si-placeholder, guard `shouldPublish` testeado) + `pnpm prompts:build-seed`. Publicado (3 bloques v1) · smoke composePrompt OK (sin `{{}}`/`-- PENDIENTE`) · idempotente (skip=3) · 42/42. Iván afina vía Cerebro |
 | **S23 — Cierre** | ⏳ 🔴 | verificación + promote panel + memoria |
 
 > **Gate base (G)** repetido al cierre de cada sub-bloque: `pnpm typecheck && lint && build` verdes + `vitest run`

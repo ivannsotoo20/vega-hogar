@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "prompts:build-seed": "node scripts/build-prompts-seed.mjs",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
