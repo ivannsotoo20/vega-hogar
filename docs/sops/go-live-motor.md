@@ -1,6 +1,22 @@
 # SOP · GO-LIVE del Motor — Vega Hogar (deploy real WhatsApp + Cal.com)
 
-> **Estado**: 🟡 EN EJECUCIÓN (arrancada 2026-06-29). Branch `checkpoint/go-live-motor` (desde `checkpoint/fase-10`).
+> **Estado**: 🟢 GIRO MVP-COMUNIDAD EJECUTADO (2026-07-02) — ver §0. G0-G2 hechos; G3-G6 (deploy VPS de la
+> instancia del autor) = siguiente sesión. Branch `checkpoint/go-live-motor` (desde `checkpoint/fase-10`),
+> **mergeada a `main`** y repo **PÚBLICO**.
+
+## 0. Giro MVP-comunidad (2026-07-02, decisión del autor)
+
+Con G0-G1 verdes, el proyecto se re-priorizó a **MVP público para la comunidad formativa** antes del deploy VPS:
+1. **G2 ejecutado**: webhook YCloud entrante real (`routes/webhook-ycloud.ts`) + fixes de auditoría.
+2. **Community pack**: skill `.claude/skills/onboarding-comercial` + `ONBOARDING.md` + `scripts/onboarding-{admin,tenant}.mjs`
+   + CLAUDE.md/README versión comunidad + limpieza de referencias personales.
+3. **Auditoría completa**: gates (typecheck/lint/build/83 tests motor/42-42 RLS/golden path×2) + review adversarial
+   multi-agente (23 agentes, 14 hallazgos confirmados → 12 arreglados, 2 aceptados: email público del autor en
+   seed/SOPs [ya público vía git log]; comportamiento del parser F10 con batches/reacciones [deuda F12]).
+4. **Publicación**: merge fast-forward a `main` + push (12 ramas checkpoint como hitos) + `visibility public` +
+   verificación anónima. Repo: https://github.com/ivannsotoo20/vega-hogar
+5. **Pendiente (siguiente sesión)**: G3-G6 — deploy VPS Contabo + Cloudflare Tunnel + cuentas YCloud/Cal.com
+   reales + `enforce` + smoke en vivo. El código ya está listo (G2 incluido).
 > **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (aprobado 2026-06-29).
 > **Fase previa**: F10 (motor code-complete + gated; canal real YCloud/Cal.com escrito pero OFF).
 > **Reabre conscientemente D4** (F10 terminaba en mock-verificado). Absorbe el hardening de prod que el roadmap reservaba a F14.
