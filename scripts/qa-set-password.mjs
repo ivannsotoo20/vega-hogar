@@ -4,8 +4,8 @@
 // (solo desde script, NUNCA desde el panel — regla 2). Confirma el email también
 // (por si el seed user nunca hizo login y no tiene email_confirmed_at).
 //
-// Uso: node scripts/qa-set-password.mjs <email> [password]
-//      (password por defecto: la convención QA del proyecto)
+// Uso: node scripts/qa-set-password.mjs <email> <password>
+//      (la password se pasa SIEMPRE por argumento — nunca hardcodeada)
 
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
@@ -17,14 +17,18 @@ loadEnv({ path: path.resolve(__dirname, '..', '.env.local') });
 const URL = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = (process.argv[2] || '').trim().toLowerCase();
-const password = process.argv[3] || 'Fyzon.2k26!';
+const password = process.argv[3];
 
 if (!URL || !KEY) {
   console.error('FATAL: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing in .env.local');
   process.exit(1);
 }
-if (!email) {
-  console.error('Uso: node scripts/qa-set-password.mjs <email> [password]');
+if (!email || !password) {
+  console.error('Uso: node scripts/qa-set-password.mjs <email> <password>');
+  process.exit(1);
+}
+if (password.length < 8) {
+  console.error('FATAL: la password debe tener al menos 8 caracteres.');
   process.exit(1);
 }
 

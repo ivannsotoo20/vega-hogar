@@ -159,6 +159,12 @@ y el composer), `/leads`, `/properties`, `/admin/cerebro`.
 - **Itera la voz** de tu agente en `/admin/cerebro` (borrador → publicar → versionado).
 - **Simula conversaciones** posteando al webhook mock (mira `scripts/golden-path-smoke.mjs`).
 - **Explora los SOPs** en `docs/sops/` — el diario de construcción fase a fase del sistema.
+- **Desplegar el panel a Vercel (opcional)**: es un monorepo, así que al importar el repo en
+  Vercel **debes poner el Root Directory en `apps/panel`** (Settings → Build & Deployment →
+  Root Directory) y añadir las env `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+  Si lo dejas en la raíz, Vercel corre `turbo build` y falla con *"No Output Directory named
+  public found"* — no es un error del código, es la config del proyecto. El motor NO va a
+  Vercel (es un servicio Fastify → Docker/VPS).
 - **Canal real**: el webhook YCloud + Cal.com ya están codeados (gated por flags
   `WHATSAPP_PROVIDER` / `CALENDAR_PROVIDER` / `*_WEBHOOK_VERIFY_MODE`) — conectarlos
   requiere cuentas reales y exponer el motor por HTTPS (ver `docs/sops/go-live-motor.md`).
