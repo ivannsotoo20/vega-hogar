@@ -1,8 +1,8 @@
 # SOP · Fase 09 — Admin agencia + Cerebro (`/admin/*` + `/settings/*`)
 
 > **Estado**: 🟡 EN EJECUCIÓN (arrancada 2026-06-11). Branch `checkpoint/fase-09` (desde `checkpoint/fase-08`).
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§9 F9, §5/§6 prompts, §7 admin/settings, §10).
-> **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-purring-beacon.md`.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§9 F9, §5/§6 prompts, §7 admin/settings, §10).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 > **Fases previas**: F2 auth/permisos · F3 shim auth/shell · F4 tablas operativas (prompt_blocks/_versions/_drafts) · F5/F7/F8 (patrones anon+RLS a replicar).
 
 ---
@@ -242,7 +242,7 @@ checkpoint**, nunca de golpe.
 - `git add` selectivo, mostrar diff, **OK de Iván**, commit `feat(fase-09): admin agencia + cerebro —
   /admin/{dashboard,tenants,admins,cerebro} + /settings + invites (migr 016/017) + reescritura Regla 9`,
   push. Verificar deploy alias `vega-hogar-panel-git-checkpoint-fase-09-…vercel.app`. **PROMOVER**:
-  `vercel promote <url> --scope ivans-projects-63b5f517 --yes`. Smoke `https://vega-hogar-panel.vercel.app`
+  `vercel promote <url> --scope <TU_SCOPE_VERCEL> --yes`. Smoke `https://vega-hogar-panel.vercel.app`
   (`/`, `/admin/tenants`, `/admin/cerebro`, `/settings`, `/login`). Actualizar memoria
   (`fase_09_completada.md` + MEMORY.md) + checkmarks del SOP. Daemon `backup` puede racear; **no `--force`**.
 

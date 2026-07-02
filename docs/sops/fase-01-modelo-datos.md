@@ -4,8 +4,8 @@
 > 16 tablas core + RLS estricto por rol + seed verosímil del tenant Vega Hogar.
 >
 > **Duración estimada**: 2 sesiones largas (puede dividirse en 2 días).
-> **Plan maestro**: `~/.claude/plans/vamos-a-hacer-un-flickering-marble.md`.
-> **Memoria runtime**: `~/.claude/projects/.../memory/fase_00_completada.md` (IDs Supabase/Vercel).
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
+> **Memoria runtime**: _memoria local del autor (no versionada en el repo)_ (IDs Supabase/Vercel).
 
 ---
 

@@ -5,8 +5,8 @@
 > `checkpoint/fase-00`. Cero features funcionales todavía.
 >
 > **Duración estimada**: 1 semana.
-> **Plan operativo**: `~/.claude/plans/arrancamos-fase-0-del-quiet-zebra.md`.
-> **Plan maestro**: `~/.claude/plans/vamos-a-hacer-un-flickering-marble.md`.
+> **Plan operativo**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 
 ---
 
@@ -104,7 +104,7 @@
 
 ### 0.10 — Vercel proyecto (REQUIERE OK Iván)
 - [ ] Verificar Vercel CLI instalado (`npm i -g vercel` si no).
-- [ ] `vercel link` desde `apps/panel` → proyecto nuevo `vega-hogar-panel` en team `ivans-projects-63b5f517`.
+- [ ] `vercel link` desde `apps/panel` → proyecto nuevo `vega-hogar-panel` en team `<TU_SCOPE_VERCEL>`.
 - [ ] Variables Vercel production: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - [ ] `vercel --prod` → deploy preview.
 

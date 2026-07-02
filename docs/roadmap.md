@@ -4,8 +4,8 @@
 > (`C:\Users\sotob\setters_ia`, ~85% reutilizable) dentro de Vega Hogar, re-domainizado a
 > comercial inmobiliario (panel anon+RLS) + voz por ElevenLabs.
 >
-> - **Plan maestro (detalle arquitectónico)**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md`
-> - **Memoria del proyecto**: `~/.claude/projects/C--Users-sotob-comercial-inmobiliaria/memory/MEMORY.md`
+> - **Plan maestro (detalle arquitectónico)**: _plan de sesión del autor (archivo local, no versionado en el repo)_
+> - **Memoria del proyecto**: _memoria local del autor (no versionada en el repo)_
 > - **SOP por fase**: `docs/sops/fase-NN-*.md` · **Convención**: 1 fase = 1 branch `checkpoint/fase-NN` + 1 SOP + OK de Iván.
 
 Leyenda: ✅ hecha · 🟡 en curso · ⬜ pendiente · 🔴 bloque prioritario.

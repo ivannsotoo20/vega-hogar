@@ -1,8 +1,8 @@
 # SOP · Fase 10 — Motor texto + WhatsApp + Cal.com + Keywords (port SETTER→Vega)
 
 > **Estado**: 🟡 EN EJECUCIÓN (arrancada 2026-06-11). Branch `checkpoint/fase-10` (desde `checkpoint/fase-09`).
-> **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-jazzy-fountain.md`.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` §6 (F10), §5 (tablas F4), §10 #1 (A/B).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ §6 (F10), §5 (tablas F4), §10 #1 (A/B).
 > **Origen del port**: `C:\Users\sotob\setters_ia` (`apps/motor-agente` + `packages/*`, ~85% reusable).
 > **Fases previas**: F4 (24 tablas del motor + RLS + seed) · F9 (Cerebro + Regla 9 BD-como-verdad).
 
@@ -221,7 +221,7 @@ intervalos 24/72/168) · **3 prompt_blocks placeholder** `-- PENDIENTE F10 --` (
 - Verificación total (§5) + `grep` 0 `service-role` en `apps/panel/src`. `git add` selectivo, mostrar diff,
   **OK de Iván**, commit final `feat(fase-10): motor texto + whatsapp (mock+ycloud) + cal.com + pipeline 3-LLM +
   keywords + followups`. Push. Deploy panel (preview por rama) → **PROMOVER a prod**
-  `vercel promote <url> --scope ivans-projects-63b5f517 --yes` + smoke (`/`, `/conversations`, `/login`). **El motor
+  `vercel promote <url> --scope <TU_SCOPE_VERCEL> --yes` + smoke (`/`, `/conversations`, `/login`). **El motor
   NO se despliega a prod en F10** (go-live diferido). Actualizar memoria (`fase_10_completada.md` + MEMORY.md) +
   checkmarks del SOP. Daemon `backup` puede racear; **no `--force`**.
 

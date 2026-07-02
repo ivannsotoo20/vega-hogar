@@ -1,8 +1,8 @@
 # SOP · Fase 06 — Pipeline + Conversaciones + Etiquetas
 
 > **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-08). Commit `5ce05df` en `checkpoint/fase-06`.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§7, F6).
-> **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-deep-locket.md`.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§7, F6).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 > **Fases previas**: F3 cimientos · F4 datos · F5 `/leads` (patrón a replicar).
 > **Branch**: `checkpoint/fase-06` (desde `checkpoint/fase-05`).
 

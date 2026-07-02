@@ -1,7 +1,7 @@
 # SOP · GO-LIVE del Motor — Vega Hogar (deploy real WhatsApp + Cal.com)
 
 > **Estado**: 🟡 EN EJECUCIÓN (arrancada 2026-06-29). Branch `checkpoint/go-live-motor` (desde `checkpoint/fase-10`).
-> **Plan de sesión**: `~/.claude/plans/arrancamos-el-go-live-del-encapsulated-axolotl.md` (aprobado 2026-06-29).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (aprobado 2026-06-29).
 > **Fase previa**: F10 (motor code-complete + gated; canal real YCloud/Cal.com escrito pero OFF).
 > **Reabre conscientemente D4** (F10 terminaba en mock-verificado). Absorbe el hardening de prod que el roadmap reservaba a F14.
 

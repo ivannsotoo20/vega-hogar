@@ -1,8 +1,8 @@
 # SOP · Fase 08 — Captación + Visitas (`/visits` + `/captacion`)
 
 > **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-10). Branch `checkpoint/fase-08` (desde `checkpoint/fase-07`), commit `d44e5bd`, promovido a producción.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§9 F8, §10.3, §4 AÑADIR, §7).
-> **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-tidy-spark.md`.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§9 F8, §10.3, §4 AÑADIR, §7).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 > **Fases previas**: F5 `/leads` · F6 pipeline/conversations/labels · F7 `/properties` (patrones a replicar).
 
 ---
@@ -178,7 +178,7 @@ como checkpoint duro con OK de Iván (ver §7 abajo). Único toque a Supabase en
 - `git add` selectivo, mostrar diff, **OK de Iván**, commit `feat(fase-08): captación + visitas — /visits
   anon+RLS + /captacion cockpit seller + cruce alta inmueble`, push. Verificar deploy alias
   `vega-hogar-panel-git-checkpoint-fase-08-…vercel.app`. **PROMOVER**: `vercel promote <url> --scope
-  ivans-projects-63b5f517 --yes`. Smoke `https://vega-hogar-panel.vercel.app` (`/`, `/visits`, `/captacion`,
+  <TU_SCOPE_VERCEL> --yes`. Smoke `https://vega-hogar-panel.vercel.app` (`/`, `/visits`, `/captacion`,
   `/login`). Actualizar memoria (`fase_08_completada.md` + MEMORY.md) + checkmarks del SOP. Daemon `backup`
   puede racear; NO `--force`.
 

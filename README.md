@@ -1,80 +1,65 @@
 # Vega Hogar — Sistema centralizado + Agente comercial IA
 
-> Sistema centralizado tipo Fyzon Type 1 (panel Next.js) + agente comercial IA tipo Type 2
-> (motor Fastify) construidos **conjuntamente con la comunidad de formación** sobre una
-> inmobiliaria española ficticia, **Vega Hogar Inmobiliaria** (Valencia, 1998).
+> CRM inmobiliario (panel Next.js 16) + **agente comercial IA por WhatsApp** (motor
+> Fastify + pipeline 3-LLM con Claude), construidos **fase a fase con una comunidad de
+> formación** sobre una inmobiliaria española ficticia, **Vega Hogar Inmobiliaria**
+> (Valencia, 1998).
 
-**Doble propósito**:
+**Estado**: MVP funcional. Panel completo (leads, pipeline, conversaciones, inmuebles,
+visitas, captación, admin + cerebro de prompts) · motor conversacional 3-LLM operativo
+contra el driver mock de WhatsApp · canal real (YCloud + Cal.com con HMAC) codeado y
+gated por flags. 42 tablas con RLS estricto, 90+ tests.
 
-1. **Formativo** — la comunidad ve el ciclo completo de construcción del stack canónico
-   Fyzon (Next.js 16 + Supabase + Vercel + Fastify + VPS + Claude Agent SDK) en 12-15
-   clases (~6-8 meses), siguiendo SOPs detallados con branches checkpoint por fase.
-2. **Showcase vertical Fyzon Inmobiliaria** — skin in the game que la vertical inmobiliaria
-   carece hoy. Cuando esté operativo será el caso demo verificable para vender la vertical.
+---
 
-**Plan maestro**: `~/.claude/plans/vamos-a-hacer-un-flickering-marble.md` (aprobado 2026-05-21).
-**Fase actual**: Fase 0 — Kickoff técnico.
+## 🎓 Para la comunidad — monta TU comercial IA
+
+Clona el repo y en **60-90 min** tienes el sistema corriendo en local con tu propio
+Supabase y tu propia inmobiliaria (el agente habla con TU voz de marca):
+
+```bash
+git clone https://github.com/ivannsotoo20/vega-hogar.git && cd vega-hogar
+```
+
+**Camino recomendado**: abre el repo en **Claude Code** y di *"configura mi comercial"*
+— la skill `onboarding-comercial` te entrevista y monta todo (BD, seeds, prompts
+personalizados, tu usuario admin, smoke test).
+
+**Camino manual**: sigue [ONBOARDING.md](ONBOARDING.md) paso a paso.
+
+Necesitas: Node 22, pnpm 10.33, una cuenta Supabase (gratis) y una API key de Anthropic
+(~5 USD de saldo; cada conversación de prueba cuesta ~0,02 USD). Docker opcional.
+**No necesitas** cuentas de WhatsApp/YCloud ni Cal.com — en local se trabaja con el
+driver mock.
+
+> ⚠ Proyecto **formativo**: el catálogo demo (35 inmuebles de Valencia), los leads y el
+> equipo son ficticios, con cifras conservadoras. Cada instalación usa SU Supabase y SUS
+> claves — nada se comparte.
 
 ---
 
 ## Arquitectura (resumen ejecutivo)
 
 ```
-┌──────────────────────────┐     ┌─────────────────────────┐
-│ apps/panel (Next.js 16)  │     │ apps/motor (Fastify 5)  │
-│ → Vercel                 │     │ → VPS Contabo + Docker  │
-│ Tailwind 4 + shadcn/ui   │     │ Redis (cadencia)        │
-└──────────┬───────────────┘     └────────────┬────────────┘
+┌──────────────────────────┐     ┌──────────────────────────────┐
+│ apps/panel (Next.js 16)  │     │ apps/motor (Fastify 5)       │
+│ → Vercel                 │     │ → Docker (VPS)               │
+│ Tailwind 4 + shadcn/ui   │     │ Redis (debounce + dedup)     │
+│ anon key + RLS           │     │ service_role (solo aquí)     │
+└──────────┬───────────────┘     └────────────┬─────────────────┘
            │                                   │
-           │           ┌───────────────────────┘
-           │           │
-           ▼           ▼
-       ┌─────────────────────────┐
-       │ Supabase (Postgres)     │
-       │ Auth + Storage + RLS    │
-       └─────────────────────────┘
+           ▼                                   ▼
+       ┌──────────────────────────────────────────┐
+       │ Supabase (Postgres + Auth + RLS estricto)│
+       └──────────────────────────────────────────┘
 
-Canales del agente: WhatsApp (YCloud BSP) + Voz (Zadarma + ElevenLabs + STT)
-Ads: Meta Marketing API vía Composio
+Flujo del agente:  WhatsApp (YCloud real o mock) → webhook → debounce Redis
+  → pipeline 3-LLM (Generator → Judge → Splitter, guardrails V00-V19)
+  → respuesta multi-burbuja + tools (buscar inmuebles, agendar visita, escalar)
+Agenda: Cal.com v2 (webhooks HMAC; `visits` = verdad, Cal.com = espejo)
 ```
 
 Detalle en [docs/architecture.md](docs/architecture.md).
-
----
-
-## Cómo arrancar (Fase 0)
-
-### Requisitos previos
-
-- **Node.js 22 LTS** — controlado vía `.nvmrc`. Con `nvm` o `fnm`: `nvm use`.
-- **pnpm 10.33+** — `corepack enable && corepack prepare pnpm@10.33.0 --activate`.
-- **Docker Desktop** (opcional en Fase 0 — necesario desde Fase 5 para el motor).
-- Cuenta GitHub, Supabase, Vercel — solo si vas a desplegar.
-
-### Pasos
-
-```bash
-# 1. Instalar dependencias del monorepo
-pnpm install
-
-# 2. Copiar variables de entorno (rellenar manualmente lo que aplique)
-cp .env.example .env.local
-
-# 3. Verificar typecheck
-pnpm typecheck
-
-# 4. Arrancar el panel en dev
-pnpm --filter @vega-hogar/panel dev
-# → http://localhost:3000 (landing placeholder Vega Hogar)
-
-# 5. Arrancar el motor en dev (otra terminal)
-pnpm --filter @vega-hogar/motor dev
-# → http://localhost:3010/health → { status: "ok", ... }
-# (puerto 3010 para no chocar con otros motores Fyzon que usan :3001)
-
-# 6. (Opcional) Stack motor + redis vía Docker
-docker compose up --build
-```
 
 ---
 
@@ -84,62 +69,72 @@ docker compose up --build
 vega-hogar/
 ├── apps/
 │   ├── panel/                # Next.js 16 + Tailwind 4 + shadcn/ui → Vercel
-│   └── motor/                # Fastify 5 + Node 22 → VPS Contabo
+│   └── motor/                # Fastify 5 + Node 22 → Docker (VPS)
 ├── packages/
-│   ├── db/                   # Prisma + cliente Supabase (Fase 1)
-│   ├── agent-pipeline/       # 3-LLM Generator/Judge/Splitter (Fase 6)
-│   ├── channel-adapters/     # WhatsApp (YCloud + mock) + voz Zadarma (Fase 5/8)
-│   ├── composio-actions/     # Meta Ads vía Composio (Fase 12)
-│   └── shared-validator/     # Guardrails V0-V16 (Fase 6)
+│   ├── db/                   # Prisma + cliente Supabase + migraciones + seeds
+│   ├── agent-pipeline/       # 3-LLM Generator/Judge/Splitter
+│   ├── prompt-composer/      # system prompt desde prompt_blocks (cache two-point)
+│   ├── channel-adapters/     # WhatsApp (YCloud + mock)
+│   ├── composio-actions/     # Meta Ads vía Composio (futuro)
+│   └── shared-validator/     # Guardrails V00-V19
 ├── docs/
 │   ├── architecture.md
 │   ├── inmobiliaria-ficticia.md   # lore Vega Hogar
-│   └── sops/                       # 1 SOP por fase del roadmap
-├── docker-compose.yml         # motor + redis local
-├── turbo.json                 # pipeline build/dev/typecheck/test
-├── tsconfig.base.json
-├── pnpm-workspace.yaml
+│   └── sops/                       # 1 SOP por fase — el DIARIO DE CONSTRUCCIÓN
+├── scripts/                   # setup BD, seeds, onboarding, smokes, auditorías RLS
+├── ONBOARDING.md              # guía: monta tu instancia en 60-90 min
 ├── CLAUDE.md                  # biblia técnica del repo
-└── README.md
+└── docker-compose.yml         # motor + redis local
 ```
 
 ---
 
-## Roadmap (15 fases)
+## Cómo se construyó (fases reales)
 
-| Fase | Título | Duración |
-|---|---|---|
-| **00** | Kickoff técnico | 1 semana |
-| 01 | Modelo de datos Supabase + RLS + seed | 2 sem |
-| 02 | Auth panel + 5 roles + permisos | 1 sem |
-| 03 | Catálogo inmuebles | 1-2 sem |
-| 04 | Leads + visitas + asignación round-robin | 2 sem |
-| 05 | Motor base + ingesta WhatsApp | 2 sem |
-| 06 | Pipeline 3-LLM agente IA texto | 2-3 sem |
-| 07 | Cualificación dual comprador + vendedor | 2 sem |
-| 08 | Voz custom Zadarma + ElevenLabs | 3 sem |
-| 09 | Cadencia multicanal 3 pasos | 2 sem |
-| 10 | Notificaciones WhatsApp internas | 1 sem |
-| 11 | Módulo captación vendedores + form web | 2 sem |
-| 12 | Meta Ads vía Composio | 2-3 sem |
-| 13 | Testing + hardening (RLS, HMAC, redaction) | 1-2 sem |
-| 14 | CI/CD + observabilidad + deploy producción | 1-2 sem |
-| 15 | Verification end-to-end + demo final | 1 sem |
+Cada fase = 1 SOP en `docs/sops/` + branch `checkpoint/fase-NN` (los branches se
+conservan como hitos de clase):
 
-Cada fase = 1 SOP en `docs/sops/` + 1 clase comunidad + branch `checkpoint/fase-NN`.
-Detalle en `~/.claude/plans/vamos-a-hacer-un-flickering-marble.md`.
+| Fase | Qué entró |
+|---|---|
+| 00 | Kickoff: monorepo, Supabase, Vercel, esqueletos |
+| 01 | Modelo de datos (16 tablas) + RLS + seed Vega Hogar |
+| 02 | Auth SSR magic-link/password + 5 roles + matriz de permisos |
+| 03-04 | Port de la base SaaS: shell del panel, 24 tablas operativas del motor, RLS patrón `current_tenant()` |
+| 05-08 | Módulos del panel: `/leads` (+GDPR), `/pipeline` + `/conversations`, `/properties`, `/visits` + `/captacion` |
+| 09 | Admin agencia + **Cerebro** (editor de prompts con versionado) + invites |
+| 10 | **Motor conversacional**: pipeline 3-LLM, webhooks (mock + YCloud + Cal.com), agent-tools, cron, seguridad HMAC |
+| go-live | Webhook YCloud real + runbook local + onboarding comunidad (este MVP) |
+| Futuro | Dashboard KPIs (F11) · Voz (F12) · Meta Ads (F13) · CI/CD + observabilidad (F14) |
+
+---
+
+## Comandos frecuentes
+
+```bash
+pnpm install                                # deps del monorepo
+pnpm --filter @vega-hogar/panel dev         # panel → localhost:3000
+pnpm --filter @vega-hogar/motor dev         # motor → localhost:3010
+docker compose up --build                   # motor + redis vía Docker
+pnpm typecheck && pnpm test                 # gates
+
+node scripts/golden-path-smoke.mjs          # e2e: WhatsApp mock → 3-LLM → respuesta
+node scripts/test-rls-anon-leaks.mjs        # auditoría RLS (42/42)
+```
 
 ---
 
 ## Documentación clave
 
-- [CLAUDE.md](CLAUDE.md) — biblia técnica del repo (reglas no negociables, comandos, qué NO hacer)
+- [ONBOARDING.md](ONBOARDING.md) — monta tu instancia (comunidad)
+- [CLAUDE.md](CLAUDE.md) — biblia técnica (reglas no negociables, comandos, anti-jugadas)
 - [docs/architecture.md](docs/architecture.md) — diagrama + flujos
-- [docs/inmobiliaria-ficticia.md](docs/inmobiliaria-ficticia.md) — lore Vega Hogar (sedes, equipo, catálogo, paleta)
-- [docs/sops/fase-00-kickoff.md](docs/sops/fase-00-kickoff.md) — SOP de Fase 0 (este sub-paso)
+- [docs/inmobiliaria-ficticia.md](docs/inmobiliaria-ficticia.md) — lore Vega Hogar
+- [docs/sops/](docs/sops/) — el diario de construcción, fase a fase
 
 ---
 
 ## Licencia y autoría
 
-Proyecto formativo de **Fyzon** (Iván Soto). Repo privado.
+Proyecto formativo de **Fyzon** (Iván Soto), abierto a la comunidad de formación.
+Los datos de la inmobiliaria son ficticios. Usa el código para aprender y para tu
+propia instancia; no re-vendas el sistema tal cual sin permiso del autor.

@@ -1,7 +1,7 @@
 # SOP · Fase 04 — Convergencia del modelo de datos del port
 
 > **Estado**: ✅ CERRADA · branch `checkpoint/fase-04`. Ejecutada 2026-06-02.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§5).
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§5).
 > **Fase previa**: `fase-03-cimientos-port.md` (cerrada 2026-06-02, `checkpoint/fase-03`).
 > **Branch a crear**: `checkpoint/fase-04`.
 

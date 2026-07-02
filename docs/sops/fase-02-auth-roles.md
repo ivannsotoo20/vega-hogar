@@ -1,7 +1,7 @@
 # SOP · Fase 02 — Auth panel + 5 roles + matriz permisos
 
 > **Estado**: CERRADA · branch `checkpoint/fase-02`.
-> **Plan de implementación**: `~/.claude/plans/arrancamos-fase-2-del-gleaming-engelbart.md`.
+> **Plan de implementación**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 > **Fase previa**: `fase-01-modelo-datos.md` (cerrada 2026-05-25).
 > **Inicio**: 2026-05-27.
 > **Cierre**: 2026-05-27.

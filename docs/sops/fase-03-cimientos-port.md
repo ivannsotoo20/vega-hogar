@@ -1,7 +1,7 @@
 # SOP · Fase 03 — Cimientos del port (shim auth + shell + rebrand)
 
 > **Estado**: ✅ CERRADA · branch `checkpoint/fase-03`. Ejecutada 2026-06-02.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (giro de port SETTER→Vega).
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (giro de port SETTER→Vega).
 > **Fase previa**: `fase-02-auth-roles.md` (cerrada 2026-05-27, branch `checkpoint/fase-02`).
 > **Branch a crear**: `checkpoint/fase-03`.
 

@@ -1,8 +1,8 @@
 # SOP · Fase 07 — Catálogo de inmuebles (`/properties`)
 
 > **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-08). Branch `checkpoint/fase-07` (desde `checkpoint/fase-06`).
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§7, F7).
-> **Plan de sesión**: `~/.claude/plans/retomamos-vega-hogar-c-users-sotob-comer-sequential-sundae.md`.
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§7, F7).
+> **Plan de sesión**: _plan de sesión del autor (archivo local, no versionado en el repo)_.
 > **Fases previas**: F3 cimientos · F4 datos · F5 `/leads` · F6 pipeline/conversations/labels (patrón a replicar).
 
 ---

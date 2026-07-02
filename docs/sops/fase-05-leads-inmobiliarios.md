@@ -1,7 +1,7 @@
 # SOP · Fase 05 — Leads inmobiliarios (`/leads`)
 
 > **Estado**: ✅ EJECUTADO Y VERIFICADO (2026-06-03). Commit `feat(fase-05)` en `checkpoint/fase-05`.
-> **Plan maestro**: `~/.claude/plans/para-seguir-avanzando-con-proud-patterson.md` (§7, F5).
+> **Plan maestro**: _plan de sesión del autor (archivo local, no versionado en el repo)_ (§7, F5).
 > **Fases previas**: F3 cimientos (`checkpoint/fase-03`) + F4 datos (`checkpoint/fase-04`).
 > **Branch a crear**: `checkpoint/fase-05`.
 
