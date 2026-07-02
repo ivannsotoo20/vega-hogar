@@ -1,10 +1,11 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { ZodError } from 'zod';
 import type { Database } from '@vega-hogar/db';
 import { parseYCloudInbound } from '@vega-hogar/channel-adapters';
 import { env } from '../config/env.js';
 import { getSupabase } from '../lib/supabase.js';
-import { getRedis, tryClaimDedupKey } from '../lib/redis.js';
+import { getRedis, tryClaimDedupKey, releaseDedupKey } from '../lib/redis.js';
 import { enqueueDebounce } from '../lib/debounce-buffer.js';
 import { safeLogBody } from '../lib/log-redact.js';
 import { verifyYCloudSignature } from '../lib/webhook-verify.js';
@@ -43,6 +44,8 @@ export interface YCloudProcessDeps {
   supabase: SupabaseClient<Database>;
   /** tryClaimDedupKey inyectable (tests). true = clave nueva (no duplicado). */
   claimDedup: (key: string, ttlSeconds?: number) => Promise<boolean>;
+  /** Libera la clave dedup si la ingesta falla tras reclamarla (best-effort). */
+  releaseDedup: (key: string) => Promise<void>;
   /** enqueueDebounce inyectable (tests). */
   enqueue: (conversationId: number, debounceSeconds: number) => Promise<unknown>;
 }
@@ -76,42 +79,51 @@ export async function processYCloudInbound(
   const text = (msg.text ?? '').trim();
   if (!text) return { kind: 'ignored', reason: 'sin_texto' };
 
-  // Dedup por wamid ANTES de escribir nada (reintentos de YCloud).
-  if (parsed.dedupKey) {
-    const fresh = await deps.claimDedup(`ycloud:${tenantId}:${parsed.dedupKey}`, DEDUP_TTL_SECONDS);
-    if (!fresh) return { kind: 'deduped' };
-  }
-
   const phone = normalizeWaIdToE164(msg.externalUserId);
   if (!phone) return { kind: 'ignored', reason: 'telefono_invalido' };
 
-  const raw = (msg.rawPayload ?? {}) as Record<string, unknown>;
-  const contactName = typeof raw.contactName === 'string' ? raw.contactName : null;
-  const externalMsgId =
-    parsed.dedupKey?.startsWith('ycloud-msg:') === true
-      ? parsed.dedupKey.slice('ycloud-msg:'.length)
-      : null;
-
-  // Ingesta (sin tabla channels: upsert por tenant+phone) — espejo del mock.
-  const { leadId } = await upsertLead({ supabase, tenantId, phone, channel: 'whatsapp', fullName: contactName });
-  const { conversationId } = await getOrCreateConversation({ supabase, tenantId, leadId, channel: 'whatsapp' });
-  await insertInboundMessage({ supabase, tenantId, conversationId, content: text, externalMsgId });
-
-  // Clasificar inbound → conversation_source si matchea keyword (best-effort).
-  try {
-    const source = classifyInbound(text, await loadKeywords(supabase, tenantId));
-    if (source) {
-      await supabase.from('conversations').update({ conversation_source: source }).eq('id', conversationId);
-    }
-  } catch {
-    /* best-effort: la clasificación no bloquea la ingesta */
+  // Dedup por wamid ANTES de escribir (reintentos/entregas dobles de YCloud).
+  const dedupKey = parsed.dedupKey ? `ycloud:${tenantId}:${parsed.dedupKey}` : null;
+  if (dedupKey) {
+    const fresh = await deps.claimDedup(dedupKey, DEDUP_TTL_SECONDS);
+    if (!fresh) return { kind: 'deduped' };
   }
 
-  // Debounce → el cron debounce-tick disparará process-debounced.
-  const debounceSeconds = await loadDebounceWindow(supabase, tenantId);
-  await deps.enqueue(conversationId, debounceSeconds);
+  try {
+    const raw = (msg.rawPayload ?? {}) as Record<string, unknown>;
+    const contactName = typeof raw.contactName === 'string' ? raw.contactName : null;
+    const externalMsgId =
+      parsed.dedupKey?.startsWith('ycloud-msg:') === true
+        ? parsed.dedupKey.slice('ycloud-msg:'.length)
+        : null;
 
-  return { kind: 'processed', conversationId, leadId };
+    // Ingesta (sin tabla channels: upsert por tenant+phone) — espejo del mock.
+    const { leadId } = await upsertLead({ supabase, tenantId, phone, channel: 'whatsapp', fullName: contactName });
+    const { conversationId } = await getOrCreateConversation({ supabase, tenantId, leadId, channel: 'whatsapp' });
+    await insertInboundMessage({ supabase, tenantId, conversationId, content: text, externalMsgId });
+
+    // Clasificar inbound → conversation_source si matchea keyword (best-effort).
+    try {
+      const source = classifyInbound(text, await loadKeywords(supabase, tenantId));
+      if (source) {
+        await supabase.from('conversations').update({ conversation_source: source }).eq('id', conversationId);
+      }
+    } catch {
+      /* best-effort: la clasificación no bloquea la ingesta */
+    }
+
+    // Debounce → el cron debounce-tick disparará process-debounced.
+    const debounceSeconds = await loadDebounceWindow(supabase, tenantId);
+    await deps.enqueue(conversationId, debounceSeconds);
+
+    return { kind: 'processed', conversationId, leadId };
+  } catch (err) {
+    // La ingesta falló DESPUÉS de reclamar el dedup: liberar la clave para que
+    // el reintento de YCloud NO se responda como "deduped" (perdería el mensaje
+    // para siempre — preferimos un duplicado raro a perder un WhatsApp del lead).
+    if (dedupKey) await deps.releaseDedup(dedupKey);
+    throw err;
+  }
 }
 
 export async function webhookYcloudRoutes(app: FastifyInstance): Promise<void> {
@@ -155,14 +167,24 @@ export async function webhookYcloudRoutes(app: FastifyInstance): Promise<void> {
         {
           supabase,
           claimDedup: tryClaimDedupKey,
+          releaseDedup: releaseDedupKey,
           enqueue: (conversationId, seconds) => enqueueDebounce(getRedis(), conversationId, seconds),
         },
         tenantId,
         body,
       );
     } catch (err) {
-      app.log.warn({ err: err instanceof Error ? err.message : String(err), tenantId }, '[webhook-ycloud] payload inválido');
-      return reply.code(400).send({ error: 'invalid payload' });
+      // Solo el payload malformado (schema zod del parser) es un 400 del emisor.
+      // Fallos de BD/Redis son NUESTROS → rethrow (500) para que YCloud reintente.
+      if (err instanceof ZodError) {
+        app.log.warn({ tenantId, issues: err.issues.length }, '[webhook-ycloud] payload inválido (schema)');
+        return reply.code(400).send({ error: 'invalid payload' });
+      }
+      app.log.error(
+        { err: err instanceof Error ? err.message : String(err), tenantId },
+        '[webhook-ycloud] ingesta falló (dedup liberado; YCloud reintentará)',
+      );
+      throw err;
     }
 
     if (result.kind === 'deduped') return reply.code(200).send({ ok: true, deduped: true });

@@ -51,9 +51,10 @@ const NATIVE_AUDIO_NO_TEXT = {
 
 function makeDeps(db = makeFakeDb({ tenant_configs: [{ id: 1, tenant_id: 1, debounce_window_seconds: 10 }] })) {
   const claimDedup = vi.fn().mockResolvedValue(true);
+  const releaseDedup = vi.fn().mockResolvedValue(undefined);
   const enqueue = vi.fn().mockResolvedValue(undefined);
-  const deps: YCloudProcessDeps = { supabase: makeFakeSupabase(db), claimDedup, enqueue };
-  return { db, deps, claimDedup, enqueue };
+  const deps: YCloudProcessDeps = { supabase: makeFakeSupabase(db), claimDedup, releaseDedup, enqueue };
+  return { db, deps, claimDedup, releaseDedup, enqueue };
 }
 
 // ---------- normalizeWaIdToE164 ----------
@@ -129,9 +130,28 @@ describe('processYCloudInbound', () => {
     expect(db.tables.leads ?? []).toHaveLength(0);
   });
 
-  it('payload que no cumple el schema zod lanza (caller responde 400)', async () => {
+  it('payload que no cumple el schema zod lanza ZodError (contrato del handler: 400)', async () => {
     const { deps } = makeDeps();
-    await expect(processYCloudInbound(deps, 1, { foo: 'bar' })).rejects.toThrow();
+    // El handler distingue ZodError (400) de errores de infraestructura (500):
+    // este contrato debe mantenerse — si el parser deja de lanzar ZodError,
+    // los payloads corruptos pasarían a responderse 500 y YCloud reintentaría en bucle.
+    await expect(processYCloudInbound(deps, 1, { foo: 'bar' })).rejects.toMatchObject({ name: 'ZodError' });
+  });
+
+  it('si la ingesta falla tras reclamar el dedup, libera la clave y propaga el error (no se pierde el mensaje)', async () => {
+    const { deps, claimDedup, releaseDedup } = makeDeps();
+    // Simular Supabase caído en el primer write (upsertLead hace select→lanza al fallar).
+    const boom = new Error('supabase caído');
+    deps.supabase = {
+      from() {
+        throw boom;
+      },
+    } as unknown as YCloudProcessDeps['supabase'];
+
+    await expect(processYCloudInbound(deps, 1, NATIVE_INBOUND)).rejects.toThrow('supabase caído');
+    // La clave se reclamó y luego se liberó → el reintento de YCloud NO verá "deduped".
+    expect(claimDedup).toHaveBeenCalledWith('ycloud:1:ycloud-msg:wamid.ABC123', 600);
+    expect(releaseDedup).toHaveBeenCalledWith('ycloud:1:ycloud-msg:wamid.ABC123');
   });
 
   it('mismo lead en dos mensajes = 1 lead, 2 mensajes (idempotencia upsert)', async () => {

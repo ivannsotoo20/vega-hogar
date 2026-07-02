@@ -37,3 +37,18 @@ export async function tryClaimDedupKey(key: string, ttlSeconds = 60): Promise<bo
     return true;
   }
 }
+
+/**
+ * Libera una clave de dedup reclamada (best-effort). Se usa cuando la ingesta
+ * falla DESPUÉS de reclamar la clave: sin esto, el reintento del proveedor se
+ * respondería como "deduped" y el mensaje se perdería para siempre (violando
+ * la doctrina "preferimos duplicados a perder mensajes").
+ */
+export async function releaseDedupKey(key: string): Promise<void> {
+  try {
+    await getRedis().del(key);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[redis] dedup release failed', (err as Error).message);
+  }
+}

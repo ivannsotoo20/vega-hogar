@@ -49,5 +49,24 @@ export async function buildServer(): Promise<FastifyInstance> {
   // Cron del motor (debounce-tick → process-debounced). Gated OFF por defecto.
   await app.register(cronSchedulerPlugin);
 
+  // Seguridad §10: en producción con canal real, la verificación HMAC en modo
+  // distinto de `enforce` deja el webhook abierto a inyección de mensajes falsos
+  // (gasto de LLM + envíos reales). Aviso ruidoso — `warn` solo es aceptable
+  // transitoriamente durante la validación inicial de firmas del go-live.
+  if (env.NODE_ENV === 'production') {
+    if (env.WHATSAPP_PROVIDER === 'ycloud' && env.YCLOUD_WEBHOOK_VERIFY_MODE !== 'enforce') {
+      app.log.error(
+        { mode: env.YCLOUD_WEBHOOK_VERIFY_MODE },
+        '⚠ SEGURIDAD: WHATSAPP_PROVIDER=ycloud en producción SIN YCLOUD_WEBHOOK_VERIFY_MODE=enforce — el webhook acepta mensajes sin firma válida',
+      );
+    }
+    if (env.CALENDAR_PROVIDER === 'calcom' && env.CALCOM_WEBHOOK_VERIFY_MODE !== 'enforce') {
+      app.log.error(
+        { mode: env.CALCOM_WEBHOOK_VERIFY_MODE },
+        '⚠ SEGURIDAD: CALENDAR_PROVIDER=calcom en producción SIN CALCOM_WEBHOOK_VERIFY_MODE=enforce',
+      );
+    }
+  }
+
   return app;
 }

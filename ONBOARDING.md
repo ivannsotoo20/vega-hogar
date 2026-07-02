@@ -69,8 +69,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 pnpm install
 node scripts/db-apply-migrations.mjs      # 42 tablas (migraciones 001-018)
 node scripts/db-apply-policies.mjs        # RLS estricto por tenant
-node scripts/seed-permissions-matrix.mjs  # matriz de permisos por rol
-pnpm --filter @vega-hogar/motor exec tsx ../../packages/db/seeds/00-vega-hogar.ts  # tenant demo + 35 inmuebles + 20 leads
+pnpm --filter @vega-hogar/motor exec tsx ../../packages/db/seeds/00-vega-hogar.ts  # tenant demo + 35 inmuebles + 20 leads (¡PRIMERO!)
+node scripts/seed-permissions-matrix.mjs  # matriz de permisos (exige tenant 1 → va DESPUÉS del seed demo)
 node scripts/seed-engine.mjs              # fases, labels, keywords, configs del motor
 ```
 

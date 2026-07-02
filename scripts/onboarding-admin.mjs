@@ -88,9 +88,12 @@ if (authUser) {
 const db = new pg.Client({ connectionString: DB });
 await db.connect();
 try {
+  // Lookup por auth_user_id O por email (tenant 1): si el auth user fue borrado
+  // y recreado en el dashboard, la fila public.users vieja sigue existiendo con
+  // el mismo email — hay que re-vincularla, no INSERTar (unique tenant+email).
   const { rows: existing } = await db.query(
-    'SELECT id, role, is_agency_admin FROM public.users WHERE auth_user_id = $1',
-    [authUser.id],
+    'SELECT id FROM public.users WHERE auth_user_id = $1 OR (tenant_id = 1 AND email = $2) LIMIT 1',
+    [authUser.id, email],
   );
   if (existing.length === 0) {
     const { rows } = await db.query(
@@ -102,12 +105,13 @@ try {
     console.log(`✓ public.users creado → id=${rows[0].id} role=admin is_agency_admin=true`);
   } else {
     const { rows } = await db.query(
-      `UPDATE public.users SET role = 'admin', is_agency_admin = true, active = true
-       WHERE auth_user_id = $1
-       RETURNING id, role, is_agency_admin`,
-      [authUser.id],
+      `UPDATE public.users
+          SET auth_user_id = $2, role = 'admin', is_agency_admin = true, active = true
+        WHERE id = $1
+        RETURNING id, role, is_agency_admin`,
+      [existing[0].id, authUser.id],
     );
-    console.log(`✓ public.users promocionado → id=${rows[0].id} role=admin is_agency_admin=true`);
+    console.log(`✓ public.users re-vinculado/promocionado → id=${rows[0].id} role=admin is_agency_admin=true`);
   }
 } finally {
   await db.end();

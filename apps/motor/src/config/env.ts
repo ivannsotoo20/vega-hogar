@@ -102,7 +102,15 @@ const envSchema = z.object({
   RESEND_API_BASE: z.string().url().default('https://api.resend.com'),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// Un `.env` con líneas `KEY=` produce strings VACÍOS, que zod NO trata como
+// ausentes (`.optional()` solo admite undefined) → `CREDENTIALS_ENCRYPTION_KEY=`
+// o `INTERNAL_STATS_TOKEN=` vacías matarían el boot. Normalizamos ''→undefined
+// para que las opcionales/defaults se comporten como se espera de un .env.
+const rawEnv = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [k, v === '' ? undefined : v]),
+);
+
+const parsed = envSchema.safeParse(rawEnv);
 
 if (!parsed.success) {
   // eslint-disable-next-line no-console

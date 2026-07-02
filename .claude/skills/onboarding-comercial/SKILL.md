@@ -91,8 +91,8 @@ Reescribe `apps/motor/prompts/source/agencia-vega.md` con las respuestas:
 pnpm install                                                # 1. deps
 node scripts/db-apply-migrations.mjs                        # 2. tablas 001-018
 node scripts/db-apply-policies.mjs                          # 3. RLS
-node scripts/seed-permissions-matrix.mjs                    # 4. matriz permisos
-pnpm --filter @vega-hogar/motor exec tsx ../../packages/db/seeds/00-vega-hogar.ts   # 5. tenant demo (¡antes que el 6!)
+pnpm --filter @vega-hogar/motor exec tsx ../../packages/db/seeds/00-vega-hogar.ts   # 4. tenant demo (¡ANTES que 5 y 6!)
+node scripts/seed-permissions-matrix.mjs                    # 5. matriz permisos (exige tenant 1)
 node scripts/seed-engine.mjs                                # 6. motor (phases/labels/keywords/placeholders)
 # 7. ← AQUÍ va la Fase 3 (personalizar agencia-vega.md)
 pnpm prompts:build-seed                                     # 8. publicar prompts (una vez)
