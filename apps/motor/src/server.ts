@@ -5,6 +5,7 @@ import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.js';
 import { webhookMockWhatsappRoutes } from './routes/webhook-mock-whatsapp.js';
+import { webhookYcloudRoutes } from './routes/webhook-ycloud.js';
 import { webhookCalcomRoutes } from './routes/webhook-calcom.js';
 import { cronSchedulerPlugin } from './plugins/cron-scheduler.js';
 
@@ -42,6 +43,7 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(webhookMockWhatsappRoutes);
+  await app.register(webhookYcloudRoutes);
   await app.register(webhookCalcomRoutes);
 
   // Cron del motor (debounce-tick → process-debounced). Gated OFF por defecto.
